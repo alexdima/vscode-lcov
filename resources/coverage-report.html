@@ -44,10 +44,67 @@
 <body>
 
 <div id="hero"></div>
+<div>Depth:<select id="depth">
+    <option>1</option>
+    <option>2</option>
+    <option>3</option>
+    <option>4</option>
+    <option>5</option>
+    <option>6</option>
+    <option>7</option>
+    <option>8</option>
+    <option>9</option>
+    <option>10</option>
+</select>
+Filter:<input type="text" id="filter" />
+</div>
 <div id="output"></div>
+<div id="tmpoutput"></div>
 
 <script>
-var data = /*$data*/;
+var rawData = /*$data*/;
+var data = null;
+
+(function() {
+    var depth = document.getElementById('depth');
+    depth.value = 10;
+
+    var filter = document.getElementById('filter');
+    filter.value = '';
+
+    var update = function() {
+        var depthValue = depth.value;
+        var sep = rawData[0].absolutePath.indexOf('\\') > 0 ? '\\' : '/';
+        
+        var map = {};
+        rawData.forEach(function(entry) {
+            var segments = entry.path.split(sep);
+            segments = segments.slice(0, depthValue);
+
+            var path = segments.join(sep);
+            map[path] = map[path] || {
+                path: path,
+                absolutePath: entry.absolutePath,
+                lines: { found: 0, hit: 0},
+                branches: { found: 0, hit: 0}
+            };
+            map[path].lines.found += entry.lines.found;
+            map[path].lines.hit += entry.lines.hit;
+            map[path].branches.found += entry.branches.found;
+            map[path].branches.hit += entry.branches.hit;
+        });
+        data = [];
+        Object.keys(map).forEach(function(key) {
+            var entry = map[key];
+            data.push(entry);
+        });
+    };
+    depth.onchange = function() {
+        update();
+        render();
+    };
+    update();
+})();
 
 (function() {
     var linesFound = 0, linesHit = 0, branchesFound = 0, branchesHit = 0;
