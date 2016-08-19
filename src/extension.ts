@@ -5,6 +5,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as cp from 'child_process';
 import * as vm from 'vm';
+import {initLog, log} from './logger';
+
 var parse = require('lcov-parse');
 
 class Configuration {
@@ -567,6 +569,10 @@ class Controller {
 let controller: Controller = null;
 
 export function activate(context: vscode.ExtensionContext) {
+
+	initLog(context);
+
+	log.info('Starting up...');
 
 	CoverageReportProvider.init(context);
 
