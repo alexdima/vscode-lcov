@@ -26,6 +26,13 @@
           ],
           "default": "coverage/lcov.info",
           "description": "Path to lcov file"
+        },
+        "lcov.overwritingPath": {
+          "type": [
+            "string", "null"
+          ],
+          "default": null,
+          "description": "Path to overwriting lcov file"
         }
       }
     },

@@ -8,24 +8,33 @@ var parse = require('lcov-parse');
 class Configuration {
 
 	private _path: string;
+	private _overwritingPath: string;
 
 	public get relativePath(): string {
 		return this._path;
 	}
-
 	public get absolutePath(): string {
 		return path.join(vscode.workspace.rootPath, this._path);
+	}
+
+	public get relativeOverwritingPath(): string {
+		return this._overwritingPath;
+	}
+	public get absoluteOverwritingPath(): string {
+		return this._overwritingPath !== null ? path.join(vscode.workspace.rootPath, this._overwritingPath) : null;
 	}
 
 	constructor() {
 		let conf = vscode.workspace.getConfiguration('lcov');
 		this._path = conf['path'];
+		this._overwritingPath = conf['overwritingPath'];
 	}
 
 	public equals(other: Configuration) {
 		return (
 			other
 			&& this._path === other._path
+			&& this._overwritingPath === other._overwritingPath
 		);
 	}
 }
@@ -181,11 +190,17 @@ class Controller {
 		this._toDispose.push(vscode.window.onDidChangeActiveTextEditor(() => this._updateEditors()));
 		
 		// watcher to update data
-		let watcher = vscode.workspace.createFileSystemWatcher(this._config.relativePath, false, false, false);
-		this._toDispose.push(watcher);
-		watcher.onDidCreate(() => this._updateData());
-		watcher.onDidChange(() => this._updateData());
-		watcher.onDidDelete(() => this._updateData());
+		let watcher1 = vscode.workspace.createFileSystemWatcher(this._config.relativePath, false, false, false);
+		this._toDispose.push(watcher1);
+		watcher1.onDidCreate(() => this._updateData());
+		watcher1.onDidChange(() => this._updateData());
+		watcher1.onDidDelete(() => this._updateData());
+		
+		let watcher2 = vscode.workspace.createFileSystemWatcher(this._config.relativeOverwritingPath, false, false, false);
+		this._toDispose.push(watcher2);
+		watcher2.onDidCreate(() => this._updateData());
+		watcher2.onDidChange(() => this._updateData());
+		watcher2.onDidDelete(() => this._updateData());
 		this._updateData();
 
 		this._toDispose.push(vscode.workspace.registerTextDocumentContentProvider(CoverageReportProvider.SCHEME, new CoverageReportProvider(this)));
@@ -203,27 +218,47 @@ class Controller {
 	private _updateData(): void {
 		this._data = Object.create(null);
 		this._onDidChangeData.fire(void 0);
-		fs.readFile(this._config.absolutePath, (err, data) => {
+		Controller._fetchData(this._config.absolutePath, (err, allData) => {
 			if (err) {
-				console.log('lcov: Could not read ' + this._config.absolutePath);
 				console.log(err);
 				return;
 			}
+			
+			allData.forEach((fileData) => {
+				let uri = vscode.Uri.file(fileData.file);
+				this._data[uri.toString()] = fileData;
+			});
 
-			let contents = data.toString();
-			parse(this._config.absolutePath, (err:any, allData:ICoverageData[]) => {
-				if (err) {
-					console.log(err);
-					return;
+			Controller._fetchData(this._config.absoluteOverwritingPath, (err, allData) => {
+				if (!err) {
+					allData.forEach((fileData) => {
+						let uri = vscode.Uri.file(fileData.file);
+						this._data[uri.toString()] = fileData;
+					});
 				}
 
-				allData.forEach((fileData) => {
-					let uri = vscode.Uri.file(fileData.file);
-					this._data[uri.toString()] = fileData;
-				});
 				this._onDidChangeData.fire(void 0);
-
 				this._updateEditors();
+			});
+		});
+	}
+
+	private static _fetchData(absolutePath: string, cb:(err:any, data:ICoverageData[])=>void): void {
+		if (absolutePath === null) {
+			return cb(new Error('Bad Path'), null);
+		}
+		fs.readFile(absolutePath, (err, data) => {
+			if (err) {
+				return cb(err, null);
+			}
+
+			let contents = data.toString();
+			parse(contents, (err:any, data:ICoverageData[]) => {
+				if (err) {
+					return cb(err, null);
+				}
+
+				cb(null, data);
 			});
 		});
 	}
