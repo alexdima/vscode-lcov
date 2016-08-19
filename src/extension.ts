@@ -65,10 +65,73 @@ interface ICoverageData {
 	file:string;
 }
 
+abstract class QuickPickItem implements vscode.QuickPickItem {
+
+	protected _controller:Controller;
+	public label:string;
+	public description:string;
+	public detail:string;
+
+	constructor(controller:Controller, label:string, description:string, detail?:string) {
+		this._controller = controller;
+		this.label = label;
+		this.description = description;
+		this.detail = detail;
+	}
+
+	public abstract run(): void; 
+}
+
+class ShowCoverageReport extends QuickPickItem {
+
+	constructor(controller:Controller) {
+		super(controller, 'Show Coverage Report', '');
+	}
+
+	public run(): void {
+		controller.showCoverageReport();
+	}
+}
+
+class CoverageReportProvider implements vscode.TextDocumentContentProvider {
+
+	public static SCHEME = 'lcov';
+	public static COVERAGE_REPORT_URI = vscode.Uri.parse('lcov:coverage-report');
+	
+	private static COVERAGE_REPORT_TEMPLATE: string;
+	public static init(ctx:vscode.ExtensionContext): void {
+		this.COVERAGE_REPORT_TEMPLATE = fs.readFileSync(ctx.asAbsolutePath('./resources/coverage-report.html')).toString();
+	}
+
+	private _controller:Controller;
+	
+	private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
+	public onDidChange = this._onDidChange.event;
+
+	constructor(controller:Controller) {
+		this._controller = controller;
+		this._controller.onDidChangeData(() => {
+			this._onDidChange.fire(CoverageReportProvider.COVERAGE_REPORT_URI);
+		});
+	}
+
+	public provideTextDocumentContent(uri: vscode.Uri): string {
+		let data = this._controller.getData();
+		return (
+			CoverageReportProvider.COVERAGE_REPORT_TEMPLATE
+			.replace(/\/\*\$data\*\//, JSON.stringify(data))
+			.replace(/\/\*\$workspace\*\//, '"' + vscode.workspace.rootPath.replace(/\\/g, '\\\\') + '"')
+		);
+	}
+}
+
 class Controller {
 	private _config: Configuration;
 	private _toDispose: vscode.Disposable[];
 	private _data: {[uri:string]:ICoverageData};
+	
+	private _onDidChangeData = new vscode.EventEmitter<void>();
+	public onDidChangeData = this._onDidChangeData.event;
 	
 	private _coveredLineDecType: vscode.TextEditorDecorationType;
 	private _missedLineDecType: vscode.TextEditorDecorationType;
@@ -78,6 +141,7 @@ class Controller {
 		this._toDispose = [];
 		this._data = Object.create(null);
 
+		// decoration type for covered lines
 		this._coveredLineDecType = vscode.window.createTextEditorDecorationType({
 			backgroundColor: 'rgba(208,233,153,0.1)',
 			isWholeLine: true,
@@ -87,6 +151,7 @@ class Controller {
 		});
 		this._toDispose.push(this._coveredLineDecType);
 		
+		// decoration type for missed lines
 		this._missedLineDecType = vscode.window.createTextEditorDecorationType({
 			backgroundColor: 'rgba(216,134,123,0.1)',
 			isWholeLine: true,
@@ -96,15 +161,18 @@ class Controller {
 		});
 		this._toDispose.push(this._missedLineDecType);
 
+		// watcher to update decorations
 		this._toDispose.push(vscode.window.onDidChangeActiveTextEditor(() => this._updateEditors()));
 		
+		// watcher to update data
 		let watcher = vscode.workspace.createFileSystemWatcher(this._config.relativePath, false, false, false);
 		this._toDispose.push(watcher);
-
 		watcher.onDidCreate(() => this._updateData());
 		watcher.onDidChange(() => this._updateData());
 		watcher.onDidDelete(() => this._updateData());
 		this._updateData();
+
+		this._toDispose.push(vscode.workspace.registerTextDocumentContentProvider(CoverageReportProvider.SCHEME, new CoverageReportProvider(this)));
 	}
 
 	public dispose(): void {
@@ -112,7 +180,13 @@ class Controller {
 		this._toDispose = [];
 	}
 
+	public getData(): {[uri:string]:ICoverageData} {
+		return this._data;
+	}
+
 	private _updateData(): void {
+		this._data = Object.create(null);
+		this._onDidChangeData.fire(void 0);
 		fs.readFile(this._config.absolutePath, (err, data) => {
 			if (err) {
 				console.log('lcov: Could not read ' + this._config.absolutePath);
@@ -131,6 +205,7 @@ class Controller {
 					let uri = vscode.Uri.file(fileData.file);
 					this._data[uri.toString()] = fileData;
 				});
+				this._onDidChangeData.fire(void 0);
 
 				this._updateEditors();
 			});
@@ -155,12 +230,29 @@ class Controller {
 		editor.setDecorations(this._coveredLineDecType, covered.map(toRange));
 		editor.setDecorations(this._missedLineDecType, missed.map(toRange));
 	}
+
+	public showMenu(): void {
+		let menu: QuickPickItem[] = [];
+		if (Object.keys(this._data).length > 0) {
+			menu.push(new ShowCoverageReport(this));
+		}
+		vscode.window.showQuickPick(menu).then((selected) => {
+			selected.run();
+		});
+	}
+
+	public showCoverageReport(): void {
+		vscode.commands.executeCommand('vscode.previewHtml', CoverageReportProvider.COVERAGE_REPORT_URI, vscode.ViewColumn.Two, 'LCOV Coverage Report');
+	}
 }
 
 
 let controller: Controller = null;
 
 export function activate(context: vscode.ExtensionContext) {
+
+	CoverageReportProvider.init(context);
+
 	let config: Configuration = null;
 
 	let checkUpdateConfig = () => {
@@ -176,6 +268,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	vscode.workspace.onDidChangeConfiguration(checkUpdateConfig);
 	checkUpdateConfig();
+
+	vscode.commands.registerCommand('lcov.menu', () => {
+		controller.showMenu();
+	});
 }
 
 // this method is called when your extension is deactivated
