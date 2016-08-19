@@ -5,9 +5,11 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as cp from 'child_process';
 import * as vm from 'vm';
-import {initLog, log} from './logger';
 
 var parse = require('lcov-parse');
+
+import {initLog, log} from './logger';
+import {UriWatcher} from './uriWatcher';
 
 class Configuration {
 
@@ -194,31 +196,7 @@ class CoverageReportProvider implements vscode.TextDocumentContentProvider {
 	}
 }
 
-class UriWatcher {
-	
-	private _watcher: vscode.FileSystemWatcher;
 
-	constructor(globPattern:string, uris:vscode.Uri[], run:()=>void) {
-		this._watcher = vscode.workspace.createFileSystemWatcher(globPattern, false, false, false);
-
-		let watching = uris.map(uri => uri.toString());
-
-		let maybeUpdate = (affectedPath:vscode.Uri) => {
-			let path = affectedPath.toString();
-			if (watching.indexOf(path) >= 0) {
-				run();
-			}
-		};
-
-		this._watcher.onDidChange(maybeUpdate);
-		this._watcher.onDidCreate(maybeUpdate);
-		this._watcher.onDidDelete(maybeUpdate);
-	}
-
-	public dispose(): void {
-		this._watcher.dispose();
-	}
-}
 
 class SourceFileWatcher {
 

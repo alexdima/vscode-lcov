@@ -8,21 +8,25 @@ export function initLog(context:vscode.ExtensionContext): void {
 	context.subscriptions.push(outputChannel);
 }
 
-function write(what:string): void {
-	outputChannel.appendLine(what);
+interface IWriteFunc {
+	(what:string): void;
+}
+
+function bind(prefix:string): IWriteFunc {
+	return (what:string) => outputChannel.appendLine(prefix + what);
 }
 
 export const log = {
-
-	error: (what:string) => {
-		write('[ERROR]: ' + what);
-	},
-
-	warn: (what:string) => {
-		write('[WARN]: ' + what);
-	},
-
-	info: (what:string) => {
-		write('[INFO]: ' + what);
+	error: bind('[ERROR]: '),
+	warn: bind('[WARN]: '),
+	info: bind('[INFO]: '),
+	debug: bind('[DEBUG]: '),
+	bind: (prefix:string) => {
+		return {
+			error: bind('[ERROR][' + prefix + ']: '),
+			warn: bind('[WARN][' + prefix + ']: '),
+			info: bind('[INFO][' + prefix + ']: '),
+			debug: bind('[DEBUG][' + prefix + ']: '),
+		}
 	}
 }
