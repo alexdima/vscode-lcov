@@ -190,17 +190,24 @@ class Controller {
 		this._toDispose.push(vscode.window.onDidChangeActiveTextEditor(() => this._updateEditors()));
 		
 		// watcher to update data
-		let watcher1 = vscode.workspace.createFileSystemWatcher(this._config.relativePath, false, false, false);
-		this._toDispose.push(watcher1);
-		watcher1.onDidCreate(() => this._updateData());
-		watcher1.onDidChange(() => this._updateData());
-		watcher1.onDidDelete(() => this._updateData());
-		
-		let watcher2 = vscode.workspace.createFileSystemWatcher(this._config.relativeOverwritingPath, false, false, false);
-		this._toDispose.push(watcher2);
-		watcher2.onDidCreate(() => this._updateData());
-		watcher2.onDidChange(() => this._updateData());
-		watcher2.onDidDelete(() => this._updateData());
+		let watcher = vscode.workspace.createFileSystemWatcher("**/*.info", false, false, false);
+		this._toDispose.push(watcher);
+
+		let watching = [vscode.Uri.file(this._config.absolutePath).toString()];
+		if (this._config.absoluteOverwritingPath) {
+			watching.push(vscode.Uri.file(this._config.absoluteOverwritingPath).toString())
+		}
+
+		let maybeUpdate = (affectedPath:vscode.Uri) => {
+			let path = affectedPath.toString();
+			if (watching.indexOf(path) >= 0) {
+				this._updateData();
+			}
+		};
+
+		watcher.onDidChange(maybeUpdate);
+		watcher.onDidCreate(maybeUpdate);
+		watcher.onDidDelete(maybeUpdate);
 		this._updateData();
 
 		this._toDispose.push(vscode.workspace.registerTextDocumentContentProvider(CoverageReportProvider.SCHEME, new CoverageReportProvider(this)));
