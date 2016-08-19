@@ -3,12 +3,15 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as cp from 'child_process';
+import * as vm from 'vm';
 var parse = require('lcov-parse');
 
 class Configuration {
 
 	private _path: string;
 	private _overwritingPath: string;
+	private _watcherExec: string;
 
 	public get relativePath(): string {
 		return this._path;
@@ -24,10 +27,22 @@ class Configuration {
 		return this._overwritingPath !== null ? path.join(vscode.workspace.rootPath, this._overwritingPath) : null;
 	}
 
+	public get watcherExec(): string {
+		return this._watcherExec;
+	}
+
 	constructor() {
 		let conf = vscode.workspace.getConfiguration('lcov');
 		this._path = conf['path'];
 		this._overwritingPath = conf['overwritingPath'];
+
+		if (/^win/.test(process.platform)) {
+			this._watcherExec = conf['watcherExec'].windows;
+		} else if ('darwin' === process.platform) {
+			this._watcherExec = conf['watcherExec'].osx;
+		} else {
+			this._watcherExec = conf['watcherExec'].linux;
+		}
 	}
 
 	public equals(other: Configuration) {
@@ -35,6 +50,7 @@ class Configuration {
 			other
 			&& this._path === other._path
 			&& this._overwritingPath === other._overwritingPath
+			&& this._watcherExec === other._watcherExec
 		);
 	}
 }
@@ -218,7 +234,35 @@ class SourceFileWatcher {
 	}
 
 	private _run(): void {
-		console.log('I SHOULD DO SOMETHING!!');
+		let workspaceRoot = vscode.workspace.rootPath;
+		let file = vscode.workspace.asRelativePath(this._uri);
+		let hadError = false;
+		let command = this._config.watcherExec.replace(/\${([^}]+)}/g, (_, expr) => {
+			let sourceCode = `(function(workspaceRoot, file, path) { return ${expr}; })`;
+			try {
+				let func = <any>vm.runInThisContext(sourceCode);
+				return func.call(null, workspaceRoot, file, path);
+			} catch(err) {
+				console.log(err);
+				hadError = true;
+				return '';
+			}
+		});
+		if (hadError) {
+			return;
+		}
+
+		console.log('EXECUTING: ' + command);
+		cp.exec(command, {
+			cwd: workspaceRoot
+		}, (err, stdout, stderr) => {
+			console.log(stdout);
+			console.log(stderr);
+			if (err) {
+				console.log(err);
+				return;
+			}
+		});
 	}
 
 	public dispose(): void {

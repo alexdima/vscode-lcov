@@ -33,6 +33,21 @@
           ],
           "default": null,
           "description": "Path to overwriting lcov file"
+        },
+        "lcov.watcherExec.osx": {
+          "type": "string",
+          "default": null,
+          "description": "Execute when a source file is watcher. e.g. scripts\test --run ${file.replace(/src/,'/out/') + path.extname(file)}. Bound variables: workspaceRoot, file, path (node's path)"
+        },
+        "lcov.watcherExec.windows": {
+          "type": "string",
+          "default": null,
+          "description": "Execute when a source file is watcher. e.g. scripts\test --run ${file.replace(/src/,'/out/') + path.extname(file)}. Bound variables: workspaceRoot, file, path (node's path)"
+        },
+        "lcov.watcherExec.linux": {
+          "type": "string",
+          "default": null,
+          "description": "Execute when a source file is watcher. e.g. scripts\test --run ${file.replace(/src/,'/out/') + path.extname(file)}. Bound variables: workspaceRoot, file, path (node's path)"
         }
       }
     },
