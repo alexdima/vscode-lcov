@@ -49,18 +49,12 @@ function rpad(str:string, n:number): string {
 	return str;
 }
 
-export const log = {
-	error: bind('[ERROR]: '),
-	warn: bind('[WARN ]: '),
-	info: bind('[INFO ]: '),
-	debug: bind('[DEBUG]: '),
-	bind: (prefix:string) => {
-		prefix = rpad(prefix, 15);
-		return {
-			error: bind('[ERROR][' + prefix + ']: '),
-			warn: bind('[WARN ][' + prefix + ']: '),
-			info: bind('[INFO ][' + prefix + ']: '),
-			debug: bind('[DEBUG][' + prefix + ']: '),
-		}
+export function LOG(prefix:string) {
+	prefix = rpad(prefix, 20);
+	return {
+		error: bind('[ERROR][' + prefix + ']: '),
+		warn: bind('[WARN ][' + prefix + ']: '),
+		info: bind('[INFO ][' + prefix + ']: '),
+		debug: bind('[DEBUG][' + prefix + ']: '),
 	}
 }

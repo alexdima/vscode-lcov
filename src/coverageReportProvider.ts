@@ -38,7 +38,6 @@ export class CoverageReportProvider implements vscode.TextDocumentContentProvide
 		return (
 			CoverageReportProvider.COVERAGE_REPORT_TEMPLATE
 			.replace(/\/\*\$data\*\//, JSON.stringify(data))
-			// .replace(/\/\*\$workspace\*\//, '"' + vscode.workspace.rootPath.replace(/\\/g, '\\\\') + '"')
 		);
 	}
 }

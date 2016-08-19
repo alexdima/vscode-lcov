@@ -6,13 +6,16 @@ import * as fs from 'fs';
 import * as cp from 'child_process';
 import * as vm from 'vm';
 
-import {initLog, log} from './logger';
+import {initLog, LOG} from './logger';
 import {UriWatcher} from './uriWatcher';
 import {Configuration} from './configuration';
 import {IRawCoverageData, IRawBranchDetail} from './loader';
 import {loadMany} from './loader';
 import {DataBank} from './dataBank';
 import {CoverageReportProvider} from './coverageReportProvider';
+import {SourceFileWatcher} from './sourceFileWatcher';
+
+const log = LOG('main');
 
 abstract class QuickPickItem implements vscode.QuickPickItem {
 
@@ -64,83 +67,6 @@ class StopSourceFileWatcher extends QuickPickItem {
 
 	public run(): void {
 		controller.stopSourceFileWatcher();
-	}
-}
-
-
-
-
-
-class SourceFileWatcher {
-
-	private _config:Configuration;
-	private _uri:vscode.Uri;
-	public get uri() { return this._uri; }
-
-	private _watcher: UriWatcher;
-	private _runTimeout: number;
-
-	constructor(config:Configuration, uri:vscode.Uri) {
-		this._config = config;
-		this._uri = uri;
-
-		let fileExtension = path.extname(uri.fsPath);
-		this._watcher = new UriWatcher("**/*" + fileExtension, [uri], () => this._runSoon());
-		this._runTimeout = null;
-	}
-
-	private _runSoon(): void {
-		if (this._runTimeout) {
-			return;
-		}
-		this._runTimeout = setTimeout(() => {
-			this._runTimeout = null;
-			this._run();
-		}, 150);
-	}
-
-	private _run(): void {
-		let workspaceRoot = vscode.workspace.rootPath;
-		let file = vscode.workspace.asRelativePath(this._uri);
-		let hadError = false;
-		let command = this._config.watcherExec.replace(/\${([^}]+)}/g, (_, expr) => {
-			let sourceCode = `(function(workspaceRoot, file, path) { return ${expr}; })`;
-			try {
-				let func = <any>vm.runInThisContext(sourceCode);
-				return func.call(null, workspaceRoot, file, path);
-			} catch(err) {
-				console.log(err);
-				hadError = true;
-				return '';
-			}
-		});
-		if (hadError) {
-			return;
-		}
-
-		console.log('EXECUTING: ' + command);
-		var proc = cp.exec(command, {
-			cwd: workspaceRoot
-		}, (err, stdout, stderr) => {
-			console.log('process finished!');
-			console.log(stdout);
-			console.log(stderr);
-			if (err) {
-				console.log(err);
-				return;
-			}
-		});
-		// proc.on('exit', (code) => {
-		// 	console.log('exited with code: ' + code);
-		// });
-	}
-
-	public dispose(): void {
-		this._watcher.dispose();
-		if (this._runTimeout) {
-			clearTimeout(this._runTimeout);
-			this._runTimeout = null;
-		}
 	}
 }
 

@@ -4,10 +4,10 @@ import * as vscode from 'vscode';
 
 import {Configuration} from './configuration';
 import {IRawCoverageData, loadMany} from './loader';
-import {log as _log} from './logger';
+import {LOG} from './logger';
 import {UriWatcher} from './uriWatcher';
 
-const log = _log.bind('DataBank')
+const log = LOG('DataBank')
 
 export interface ISummary {
 	absolutePath: string;

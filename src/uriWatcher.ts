@@ -2,13 +2,13 @@
 
 import * as vscode from 'vscode';
 
-import {log as _log} from './logger';
+import {LOG} from './logger';
 
 export class UriWatcher {
 
 	private static _instanceCnt = 0;
 
-	private log = _log.bind('UriWatcher' + (++UriWatcher._instanceCnt));
+	private log = LOG('UriWatcher' + (++UriWatcher._instanceCnt));
 	private _watcher: vscode.FileSystemWatcher;
 
 	constructor(globPattern:string, uris:vscode.Uri[], run:()=>void) {

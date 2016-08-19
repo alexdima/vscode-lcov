@@ -3,9 +3,9 @@
 import * as fs from 'fs';
 var parse = require('lcov-parse');
 
-import {log as _log} from './logger';
+import {LOG} from './logger';
 
-const log = _log.bind('Loader');
+const log = LOG('Loader');
 
 export interface IRawLinesCoverageData {
 	found: number;
