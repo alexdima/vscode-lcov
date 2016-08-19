@@ -7,7 +7,7 @@ import {log as _log} from './logger';
 export class UriWatcher {
 
 	private static _instanceCnt = 0;
-	
+
 	private log = _log.bind('UriWatcher' + (++UriWatcher._instanceCnt));
 	private _watcher: vscode.FileSystemWatcher;
 
@@ -23,7 +23,7 @@ export class UriWatcher {
 				this.log.debug('Firing due to event ' + path);
 				run();
 			} else {
-				this.log.debug('Ignoring event ' + path);
+				// this.log.debug('Ignoring event ' + path);
 			}
 		};
 

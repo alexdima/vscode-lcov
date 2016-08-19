@@ -6,47 +6,11 @@ import * as fs from 'fs';
 import * as cp from 'child_process';
 import * as vm from 'vm';
 
-var parse = require('lcov-parse');
-
 import {initLog, log} from './logger';
 import {UriWatcher} from './uriWatcher';
 import {Configuration} from './configuration';
-
-interface ILinesCoverageData {
-	found: number;
-	hit: number;
-	details: {
-		line: number;
-		hit: number;
-	}[];
-}
-interface IFunctionsCoverageData {
-	found: number;
-	hit: number;
-	details: {
-		name: string;
-		line: number;
-		hit: number;
-	}[];
-}
-interface IBranchDetail {
-	line: number;
-	block: number;
-	branch: number;
-	taken: number;
-}
-interface IBranchesCoverageData {
-	found: number;
-	hit: number;
-	details: IBranchDetail[];
-}
-interface ICoverageData {
-	lines: ILinesCoverageData;
-	functions: IFunctionsCoverageData;
-	branches: IBranchesCoverageData;
-	title:string;
-	file:string;
-}
+import {IRawCoverageData, IRawBranchDetail} from './loader';
+import {loadMany} from './loader';
 
 abstract class QuickPickItem implements vscode.QuickPickItem {
 
@@ -62,7 +26,7 @@ abstract class QuickPickItem implements vscode.QuickPickItem {
 		this.detail = detail;
 	}
 
-	public abstract run(): void; 
+	public abstract run(): void;
 }
 
 class ShowCoverageReport extends QuickPickItem {
@@ -105,14 +69,14 @@ class CoverageReportProvider implements vscode.TextDocumentContentProvider {
 
 	public static SCHEME = 'lcov';
 	public static COVERAGE_REPORT_URI = vscode.Uri.parse('lcov:coverage-report');
-	
+
 	private static COVERAGE_REPORT_TEMPLATE: string;
 	public static init(ctx:vscode.ExtensionContext): void {
 		this.COVERAGE_REPORT_TEMPLATE = fs.readFileSync(ctx.asAbsolutePath('./resources/coverage-report.html')).toString();
 	}
 
 	private _controller:Controller;
-	
+
 	private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
 	public onDidChange = this._onDidChange.event;
 
@@ -227,13 +191,13 @@ class SourceFileWatcher {
 class Controller {
 	private _config: Configuration;
 	private _toDispose: vscode.Disposable[];
-	private _data: {[uri:string]:ICoverageData};
+	private _data: {[uri:string]:IRawCoverageData};
 
 	private _sourceFileWatcher:SourceFileWatcher;
-	
+
 	private _onDidChangeData = new vscode.EventEmitter<void>();
 	public onDidChangeData = this._onDidChangeData.event;
-	
+
 	private _coveredLineDecType: vscode.TextEditorDecorationType;
 	private _missedLineDecType: vscode.TextEditorDecorationType;
 	private _coveredBranchDecType: vscode.TextEditorDecorationType;
@@ -251,12 +215,12 @@ class Controller {
 		this._coveredLineDecType = vscode.window.createTextEditorDecorationType({
 			backgroundColor: 'rgba(208,233,153,0.1)',
 			isWholeLine: true,
-			
+
 			overviewRulerColor: 'rgba(208,233,153,0.8)',
 			overviewRulerLane: vscode.OverviewRulerLane.Right
 		});
 		this._toDispose.push(this._coveredLineDecType);
-		
+
 		// decoration type for missed lines
 		this._missedLineDecType = vscode.window.createTextEditorDecorationType({
 			backgroundColor: 'rgba(216,134,123,0.1)',
@@ -296,7 +260,7 @@ class Controller {
 
 		// watcher to update decorations
 		this._toDispose.push(vscode.window.onDidChangeActiveTextEditor(() => this._updateEditors()));
-		
+
 		// watcher to update data
 		let watching = [vscode.Uri.file(this._config.absolutePath)];
 		if (this._config.absoluteOverwritingPath) {
@@ -310,60 +274,31 @@ class Controller {
 
 	public dispose(): void {
 		this.stopSourceFileWatcher();
-		
+
 		vscode.Disposable.from(...this._toDispose).dispose();
 		this._toDispose = [];
 	}
 
-	public getData(): {[uri:string]:ICoverageData} {
+	public getData(): {[uri:string]:IRawCoverageData} {
 		return this._data;
 	}
 
 	private _updateData(): void {
 		this._data = Object.create(null);
 		this._onDidChangeData.fire(void 0);
-		Controller._fetchData(this._config.absolutePath, (err, allData) => {
-			if (err) {
-				console.log(err);
-				return;
-			}
-			
-			allData.forEach((fileData) => {
-				let uri = vscode.Uri.file(fileData.file);
-				this._data[uri.toString()] = fileData;
+		loadMany([this._config.absolutePath, this._config.absoluteOverwritingPath]).then((results) => {
+			results.forEach((result) => {
+				result.data.forEach((fileData) => {
+					let uri = vscode.Uri.file(fileData.file);
+					this._data[uri.toString()] = fileData;
+				});
 			});
 
-			Controller._fetchData(this._config.absoluteOverwritingPath, (err, allData) => {
-				if (!err) {
-					allData.forEach((fileData) => {
-						let uri = vscode.Uri.file(fileData.file);
-						this._data[uri.toString()] = fileData;
-					});
-				}
+			this._onDidChangeData.fire(void 0);
+			this._updateEditors();
 
-				this._onDidChangeData.fire(void 0);
-				this._updateEditors();
-			});
-		});
-	}
-
-	private static _fetchData(absolutePath: string, cb:(err:any, data:ICoverageData[])=>void): void {
-		if (absolutePath === null) {
-			return cb(new Error('Bad Path'), null);
-		}
-		fs.readFile(absolutePath, (err, data) => {
-			if (err) {
-				return cb(err, null);
-			}
-
-			let contents = data.toString();
-			parse(contents, (err:any, data:ICoverageData[]) => {
-				if (err) {
-					return cb(err, null);
-				}
-
-				cb(null, data);
-			});
+		}, (err) => {
+			log.error(err);
 		});
 	}
 
@@ -376,7 +311,7 @@ class Controller {
 		});
 	}
 
-	private _updateEditor(editor:vscode.TextEditor, data: ICoverageData): void {
+	private _updateEditor(editor:vscode.TextEditor, data: IRawCoverageData): void {
 		let toLineRange = (detail:{line:number;}) => new vscode.Range(detail.line - 1, 0, detail.line - 1, 0);
 		let coveredLines = data.lines.details.filter(detail => detail.hit > 0);
 		let missedLines = data.lines.details.filter(detail => detail.hit === 0);
@@ -385,7 +320,7 @@ class Controller {
 
 		let branchesMap:{[line:string]:boolean[][]} = {};
 		if (data.branches.details.length > 0) {
-			let currentBranchBatch:IBranchDetail[] = [];
+			let currentBranchBatch:IRawBranchDetail[] = [];
 			currentBranchBatch.push(data.branches.details[0]);
 			for (let i = 1; i < data.branches.details.length; i++) {
 				let prev = currentBranchBatch[currentBranchBatch.length - 1];
@@ -417,7 +352,7 @@ class Controller {
 			let totalCnt = 0, takenCnt = 0;
 			for (let i = 0; i < branches.length; i++) {
 				let branch = branches[i];
-				
+
 				totalCnt += branch.length;
 				for (let j = 0; j < branch.length; j++) {
 					let condition = branch[j];
