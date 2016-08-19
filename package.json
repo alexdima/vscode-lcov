@@ -5,7 +5,7 @@
   "version": "0.0.1",
   "publisher": "alexdima",
   "engines": {
-    "vscode": "^1.0.0"
+    "vscode": "^1.4.0"
   },
   "categories": [
     "Other"

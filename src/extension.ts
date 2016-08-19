@@ -102,6 +102,31 @@ class ShowCoverageReport extends QuickPickItem {
 	}
 }
 
+class StartSourceFileWatcher extends QuickPickItem {
+
+	private _file:vscode.Uri;
+
+	constructor(controller:Controller, file:vscode.Uri) {
+		super(controller, 'Begin watching ' + vscode.workspace.asRelativePath(file), '');
+		this._file = file;
+	}
+
+	public run(): void {
+		controller.startSourceFileWatcher(this._file);
+	}
+}
+
+class StopSourceFileWatcher extends QuickPickItem {
+
+	constructor(controller:Controller, watcher:SourceFileWatcher) {
+		super(controller, 'Stop watching ' + vscode.workspace.asRelativePath(watcher.uri), '');
+	}
+
+	public run(): void {
+		controller.stopSourceFileWatcher();
+	}
+}
+
 class CoverageReportProvider implements vscode.TextDocumentContentProvider {
 
 	public static SCHEME = 'lcov';
@@ -145,8 +170,59 @@ class CoverageReportProvider implements vscode.TextDocumentContentProvider {
 		return (
 			CoverageReportProvider.COVERAGE_REPORT_TEMPLATE
 			.replace(/\/\*\$data\*\//, JSON.stringify(data))
-//			.replace(/\/\*\$workspace\*\//, '"' + vscode.workspace.rootPath.replace(/\\/g, '\\\\') + '"')
+			// .replace(/\/\*\$workspace\*\//, '"' + vscode.workspace.rootPath.replace(/\\/g, '\\\\') + '"')
 		);
+	}
+}
+
+class UriWatcher {
+	
+	private _watcher: vscode.FileSystemWatcher;
+
+	constructor(globPattern:string, uris:vscode.Uri[], run:()=>void) {
+		this._watcher = vscode.workspace.createFileSystemWatcher(globPattern, false, false, false);
+
+		let watching = uris.map(uri => uri.toString());
+
+		let maybeUpdate = (affectedPath:vscode.Uri) => {
+			let path = affectedPath.toString();
+			if (watching.indexOf(path) >= 0) {
+				run();
+			}
+		};
+
+		this._watcher.onDidChange(maybeUpdate);
+		this._watcher.onDidCreate(maybeUpdate);
+		this._watcher.onDidDelete(maybeUpdate);
+	}
+
+	public dispose(): void {
+		this._watcher.dispose();
+	}
+}
+
+class SourceFileWatcher {
+
+	private _config:Configuration;
+	private _uri:vscode.Uri;
+	public get uri() { return this._uri; }
+
+	private _watcher: UriWatcher;
+
+	constructor(config:Configuration, uri:vscode.Uri) {
+		this._config = config;
+		this._uri = uri;
+
+		let fileExtension = path.extname(uri.fsPath);
+		this._watcher = new UriWatcher("**/*" + fileExtension, [uri], () => this._run());
+	}
+
+	private _run(): void {
+		console.log('I SHOULD DO SOMETHING!!');
+	}
+
+	public dispose(): void {
+		this._watcher.dispose();
 	}
 }
 
@@ -154,6 +230,8 @@ class Controller {
 	private _config: Configuration;
 	private _toDispose: vscode.Disposable[];
 	private _data: {[uri:string]:ICoverageData};
+
+	private _sourceFileWatcher:SourceFileWatcher;
 	
 	private _onDidChangeData = new vscode.EventEmitter<void>();
 	public onDidChangeData = this._onDidChangeData.event;
@@ -165,6 +243,8 @@ class Controller {
 		this._config = config;
 		this._toDispose = [];
 		this._data = Object.create(null);
+
+		this._sourceFileWatcher = null;
 
 		// decoration type for covered lines
 		this._coveredLineDecType = vscode.window.createTextEditorDecorationType({
@@ -190,30 +270,19 @@ class Controller {
 		this._toDispose.push(vscode.window.onDidChangeActiveTextEditor(() => this._updateEditors()));
 		
 		// watcher to update data
-		let watcher = vscode.workspace.createFileSystemWatcher("**/*.info", false, false, false);
-		this._toDispose.push(watcher);
-
-		let watching = [vscode.Uri.file(this._config.absolutePath).toString()];
+		let watching = [vscode.Uri.file(this._config.absolutePath)];
 		if (this._config.absoluteOverwritingPath) {
-			watching.push(vscode.Uri.file(this._config.absoluteOverwritingPath).toString())
+			watching.push(vscode.Uri.file(this._config.absoluteOverwritingPath));
 		}
-
-		let maybeUpdate = (affectedPath:vscode.Uri) => {
-			let path = affectedPath.toString();
-			if (watching.indexOf(path) >= 0) {
-				this._updateData();
-			}
-		};
-
-		watcher.onDidChange(maybeUpdate);
-		watcher.onDidCreate(maybeUpdate);
-		watcher.onDidDelete(maybeUpdate);
+		this._toDispose.push(new UriWatcher("**/*.info", watching, () => this._updateData()));
 		this._updateData();
 
 		this._toDispose.push(vscode.workspace.registerTextDocumentContentProvider(CoverageReportProvider.SCHEME, new CoverageReportProvider(this)));
 	}
 
 	public dispose(): void {
+		this.stopSourceFileWatcher();
+		
 		vscode.Disposable.from(...this._toDispose).dispose();
 		this._toDispose = [];
 	}
@@ -294,6 +363,11 @@ class Controller {
 		if (Object.keys(this._data).length > 0) {
 			menu.push(new ShowCoverageReport(this));
 		}
+		if (!this._sourceFileWatcher) {
+			menu.push(new StartSourceFileWatcher(this, vscode.window.activeTextEditor.document.uri));
+		} else {
+			menu.push(new StopSourceFileWatcher(this, this._sourceFileWatcher));
+		}
 		vscode.window.showQuickPick(menu).then((selected) => {
 			if (selected) {
 				selected.run();
@@ -303,6 +377,18 @@ class Controller {
 
 	public showCoverageReport(): void {
 		vscode.commands.executeCommand('vscode.previewHtml', CoverageReportProvider.COVERAGE_REPORT_URI, vscode.ViewColumn.Two, 'LCOV Coverage Report');
+	}
+
+	public startSourceFileWatcher(uri:vscode.Uri): void {
+		this.stopSourceFileWatcher();
+		this._sourceFileWatcher = new SourceFileWatcher(this._config, uri);
+	}
+
+	public stopSourceFileWatcher(): void {
+		if (this._sourceFileWatcher) {
+			this._sourceFileWatcher.dispose();
+			this._sourceFileWatcher = null;
+		}
 	}
 }
 
