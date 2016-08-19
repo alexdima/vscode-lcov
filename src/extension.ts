@@ -225,13 +225,25 @@ class SourceFileWatcher {
 	public get uri() { return this._uri; }
 
 	private _watcher: UriWatcher;
+	private _runTimeout: number;
 
 	constructor(config:Configuration, uri:vscode.Uri) {
 		this._config = config;
 		this._uri = uri;
 
 		let fileExtension = path.extname(uri.fsPath);
-		this._watcher = new UriWatcher("**/*" + fileExtension, [uri], () => this._run());
+		this._watcher = new UriWatcher("**/*" + fileExtension, [uri], () => this._runSoon());
+		this._runTimeout = null;
+	}
+
+	private _runSoon(): void {
+		if (this._runTimeout) {
+			return;
+		}
+		this._runTimeout = setTimeout(() => {
+			this._runTimeout = null;
+			this._run();
+		}, 150);
 	}
 
 	private _run(): void {
@@ -272,6 +284,10 @@ class SourceFileWatcher {
 
 	public dispose(): void {
 		this._watcher.dispose();
+		if (this._runTimeout) {
+			clearTimeout(this._runTimeout);
+			this._runTimeout = null;
+		}
 	}
 }
 
@@ -287,7 +303,9 @@ class Controller {
 	
 	private _coveredLineDecType: vscode.TextEditorDecorationType;
 	private _missedLineDecType: vscode.TextEditorDecorationType;
-	private _branchDecType: vscode.TextEditorDecorationType;
+	private _coveredBranchDecType: vscode.TextEditorDecorationType;
+	private _missedBranchDecType: vscode.TextEditorDecorationType;
+	private _partialBranchDecType: vscode.TextEditorDecorationType;
 
 	constructor(config: Configuration) {
 		this._config = config;
@@ -316,8 +334,22 @@ class Controller {
 		});
 		this._toDispose.push(this._missedLineDecType);
 
-		// decoration type for missed else branches
-		this._branchDecType = vscode.window.createTextEditorDecorationType({
+		// decoration type for covered branches
+		this._coveredBranchDecType = vscode.window.createTextEditorDecorationType({
+			before: {
+				backgroundColor: 'lightgreen',
+				color: 'darkgreen',
+			}
+		});
+		// decoration type for missed branches
+		this._missedBranchDecType = vscode.window.createTextEditorDecorationType({
+			before: {
+				backgroundColor: 'darkred',
+				color: 'white',
+			}
+		});
+		// decoration type for partial branches
+		this._partialBranchDecType = vscode.window.createTextEditorDecorationType({
 			before: {
 				backgroundColor: 'black',
 				color: 'white',
@@ -436,18 +468,19 @@ class Controller {
 			}
 		}
 
+		let coveredBranches:vscode.DecorationOptions[] = [];
 		let missedBranches:vscode.DecorationOptions[] = [];
+		let partialBranches:vscode.DecorationOptions[] = [];
 		Object.keys(branchesMap).forEach((strLineNumber) => {
 			let branches = branchesMap[strLineNumber];
 			let lineNumber = parseInt(strLineNumber, 10);
 
 			let pieces:string[] = [];
-			let hasSomethingInteresting = false;
+			let totalCnt = 0, takenCnt = 0;
 			for (let i = 0; i < branches.length; i++) {
 				let branch = branches[i];
 				
-				let totalCnt = branch.length;
-				let takenCnt = 0;
+				totalCnt += branch.length;
 				for (let j = 0; j < branch.length; j++) {
 					let condition = branch[j];
 					if (condition) {
@@ -455,27 +488,45 @@ class Controller {
 					}
 				}
 
-				hasSomethingInteresting = (takenCnt !== totalCnt && takenCnt > 0);
-
 				pieces.push(branch.map((taken) => {
 					return taken ? '✓' : '∅';
 				}).join(''));
 			}
 
-			if (hasSomethingInteresting) {
-				let line = editor.document.lineAt(lineNumber - 1);
-				missedBranches.push({
-					range: new vscode.Range(line.lineNumber, line.firstNonWhitespaceCharacterIndex, line.lineNumber, line.firstNonWhitespaceCharacterIndex),
-					renderOptions: {
-						before: {
-							contentText: pieces.join('—')
-						}
-					}
-				});
+			let destination:vscode.DecorationOptions[];
+			if (totalCnt === takenCnt) {
+				// Good Job, Sir!
+				destination = coveredBranches;
+			} else if (takenCnt === 0) {
+				// Uh, oh
+				destination = missedBranches;
+			} else {
+				destination = partialBranches;
 			}
-		});
 
-		editor.setDecorations(this._branchDecType, missedBranches);
+			if (pieces.length === 1) {
+				// simple boolean condition
+				if (pieces[0] === '✓∅') {
+					// else branch was missed
+					pieces[0] = ' E ';
+				} else if (pieces[0] === '∅✓') {
+					// if branch was missed
+					pieces[0] = ' I ';
+				}
+			}
+			let line = editor.document.lineAt(lineNumber - 1);
+			destination.push({
+				range: new vscode.Range(line.lineNumber, line.firstNonWhitespaceCharacterIndex, line.lineNumber, line.firstNonWhitespaceCharacterIndex),
+				renderOptions: {
+					before: {
+						contentText: pieces.join('—')
+					}
+				}
+			});
+		});
+		editor.setDecorations(this._coveredBranchDecType, coveredBranches);
+		editor.setDecorations(this._missedBranchDecType, missedBranches);
+		editor.setDecorations(this._partialBranchDecType, partialBranches);
 	}
 
 	public showMenu(): void {
