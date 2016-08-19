@@ -116,11 +116,27 @@ class CoverageReportProvider implements vscode.TextDocumentContentProvider {
 	}
 
 	public provideTextDocumentContent(uri: vscode.Uri): string {
-		let data = this._controller.getData();
+		let rawData = this._controller.getData();
+		let workspace = vscode.workspace.rootPath;
+		let data = Object.keys(rawData).map(function(key) {
+			var entry = rawData[key];
+			return {
+				path: entry.file.substr(workspace.length + 1),
+				absolutePath: entry.file,
+				lines: {
+					found: entry.lines.found,
+					hit: entry.lines.hit
+				},
+				branches: {
+					found: entry.branches.found,
+					hit: entry.branches.hit
+				}
+			};
+		});
 		return (
 			CoverageReportProvider.COVERAGE_REPORT_TEMPLATE
 			.replace(/\/\*\$data\*\//, JSON.stringify(data))
-			.replace(/\/\*\$workspace\*\//, '"' + vscode.workspace.rootPath.replace(/\\/g, '\\\\') + '"')
+//			.replace(/\/\*\$workspace\*\//, '"' + vscode.workspace.rootPath.replace(/\\/g, '\\\\') + '"')
 		);
 	}
 }
