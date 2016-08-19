@@ -253,7 +253,9 @@ class Controller {
 			menu.push(new ShowCoverageReport(this));
 		}
 		vscode.window.showQuickPick(menu).then((selected) => {
-			selected.run();
+			if (selected) {
+				selected.run();
+			}
 		});
 	}
 
