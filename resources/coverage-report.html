@@ -28,6 +28,17 @@
         background-color: white;
         border-left: 0;
     }
+
+    .button {
+        font-size: 70%;
+        vertical-align: center;
+        display: inline-block;
+        cursor: pointer;
+    }
+
+    td.percentage {
+        text-align: center;
+    }
 </style>
 </head>
 <body>
@@ -82,11 +93,11 @@ function render() {
         r += `<span class="bar-empty" style="width:${barEmptyWidth}px"></span>`;
         r += `</td>`;
 
-        r += `<td class="${line.type}">`;
+        r += `<td class="${line.type} percentage">`;
         r += `${line.percentage}%`;
         r += `</td>`;
         
-        r += `<td class="${branch.type}">`;
+        r += `<td class="${branch.type} percentage">`;
         r += `${branch.percentage}%`;
         r += `</td>`;
 
@@ -97,10 +108,10 @@ function render() {
 
     var finalHTML = `<table>
     <thead>
-        <th>File</th>
+        <th>File&nbsp;&nbsp;<span class="button" onclick="javascript:resort('file','asc');">&#x25B2;</span><span class="button" onclick="javascript:resort('file','desc');">&#x25BC;</span></th>
         <th></th>
-        <th>Lines</th>
-        <th>Branches</th>
+        <th>Lines&nbsp;&nbsp;<span class="button" onclick="javascript:resort('lines','asc');">&#x25B2;</span><span class="button" onclick="javascript:resort('lines','desc');">&#x25BC;</span></th>
+        <th>Branches&nbsp;&nbsp;<span class="button" onclick="javascript:resort('branches','asc');">&#x25B2;</span><span class="button" onclick="javascript:resort('branches','desc');">&#x25BC;</span></th>
     </thead>
     <tbody>${html}</tbody></table>`;
     
@@ -108,13 +119,40 @@ function render() {
     document.getElementById('output').innerHTML = finalHTML;
 }
 
-data.sort(function(a,b) {
-    if (a.path < b.path) {
-        return -1;
+var allSortFunc = {
+    'file': function(a,b) {
+        if (a.path < b.path) {
+            return -1;
+        }
+        return 1;
+    },
+    'lines': function(a,b) {
+        var aCov = computeCoverage(a.lines.hit, a.lines.found);
+        var bCov = computeCoverage(b.lines.hit, b.lines.found);
+        return aCov.percentage - bCov.percentage;
+    },
+    'branches': function(a,b) {
+        var aCov = computeCoverage(a.branches.hit, a.branches.found);
+        var bCov = computeCoverage(b.branches.hit, b.branches.found);
+        return aCov.percentage - bCov.percentage;
     }
-    return 1;
-});
-render();
+}
+
+function resort(key, dir) {
+    var _sortFunc = allSortFunc[key];
+
+    var sortFunc = _sortFunc;
+    if (dir === 'desc') {
+        sortFunc = function(a,b) {
+            return -_sortFunc(a,b);
+        }
+    }
+
+    data.sort(sortFunc);
+    render();
+}
+
+resort('file', 'asc');
 
 </script>
 
