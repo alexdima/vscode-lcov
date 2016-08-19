@@ -9,64 +9,26 @@ import * as vm from 'vm';
 import {initLog, LOG} from './logger';
 import {UriWatcher} from './uriWatcher';
 import {Configuration} from './configuration';
-import {IRawCoverageData, IRawBranchDetail} from './loader';
+import {IRawCoverageData, IRawBranchCoverageDetail} from './loader';
 import {loadMany} from './loader';
 import {DataBank} from './dataBank';
 import {CoverageReportProvider} from './coverageReportProvider';
 import {SourceFileWatcher} from './sourceFileWatcher';
+import {EditorDecorator} from './editorDecorator';
 
 const log = LOG('main');
 
-abstract class QuickPickItem implements vscode.QuickPickItem {
+class QuickPickItem implements vscode.QuickPickItem {
 
-	protected _controller:Controller;
 	public label:string;
 	public description:string;
-	public detail:string;
 
-	constructor(controller:Controller, label:string, description:string, detail?:string) {
-		this._controller = controller;
+	public run:()=>void;
+
+	constructor(label:string, run:()=>void) {
 		this.label = label;
-		this.description = description;
-		this.detail = detail;
-	}
-
-	public abstract run(): void;
-}
-
-class ShowCoverageReport extends QuickPickItem {
-
-	constructor(controller:Controller) {
-		super(controller, 'Show Coverage Report', '');
-	}
-
-	public run(): void {
-		controller.showCoverageReport();
-	}
-}
-
-class StartSourceFileWatcher extends QuickPickItem {
-
-	private _file:vscode.Uri;
-
-	constructor(controller:Controller, file:vscode.Uri) {
-		super(controller, 'Begin watching ' + vscode.workspace.asRelativePath(file), '');
-		this._file = file;
-	}
-
-	public run(): void {
-		controller.startSourceFileWatcher(this._file);
-	}
-}
-
-class StopSourceFileWatcher extends QuickPickItem {
-
-	constructor(controller:Controller, watcher:SourceFileWatcher) {
-		super(controller, 'Stop watching ' + vscode.workspace.asRelativePath(watcher.uri), '');
-	}
-
-	public run(): void {
-		controller.stopSourceFileWatcher();
+		this.description = '';
+		this.run = run;
 	}
 }
 
@@ -76,220 +38,72 @@ class Controller {
 
 	private _sourceFileWatcher:SourceFileWatcher;
 	private _dataBank: DataBank;
-
-	private _coveredLineDecType: vscode.TextEditorDecorationType;
-	private _missedLineDecType: vscode.TextEditorDecorationType;
-	private _coveredBranchDecType: vscode.TextEditorDecorationType;
-	private _missedBranchDecType: vscode.TextEditorDecorationType;
-	private _partialBranchDecType: vscode.TextEditorDecorationType;
+	private _editorDecorator: EditorDecorator;
 
 	constructor(config: Configuration) {
 		this._config = config;
 		this._toDispose = [];
 
-
 		this._sourceFileWatcher = null;
-
-		// decoration type for covered lines
-		this._coveredLineDecType = vscode.window.createTextEditorDecorationType({
-			backgroundColor: 'rgba(208,233,153,0.1)',
-			isWholeLine: true,
-
-			overviewRulerColor: 'rgba(208,233,153,0.8)',
-			overviewRulerLane: vscode.OverviewRulerLane.Right
-		});
-		this._toDispose.push(this._coveredLineDecType);
-
-		// decoration type for missed lines
-		this._missedLineDecType = vscode.window.createTextEditorDecorationType({
-			backgroundColor: 'rgba(216,134,123,0.1)',
-			isWholeLine: true,
-
-			overviewRulerColor: 'rgba(216,134,123,0.8)',
-			overviewRulerLane: vscode.OverviewRulerLane.Right
-		});
-		this._toDispose.push(this._missedLineDecType);
-
-		// decoration type for covered branches
-		this._coveredBranchDecType = vscode.window.createTextEditorDecorationType({
-			before: {
-				backgroundColor: 'lightgreen',
-				color: 'darkgreen',
-			}
-		});
-		this._toDispose.push(this._coveredBranchDecType);
-
-		// decoration type for missed branches
-		this._missedBranchDecType = vscode.window.createTextEditorDecorationType({
-			before: {
-				backgroundColor: 'darkred',
-				color: 'white',
-			}
-		});
-		this._toDispose.push(this._missedBranchDecType);
-
-		// decoration type for partial branches
-		this._partialBranchDecType = vscode.window.createTextEditorDecorationType({
-			before: {
-				backgroundColor: 'black',
-				color: 'white',
-			}
-		});
-		this._toDispose.push(this._partialBranchDecType);
-
-		// watcher to update decorations
-		this._toDispose.push(vscode.window.onDidChangeActiveTextEditor(() => this._updateEditors()));
 
 		this._dataBank = new DataBank(this._config);
 		this._toDispose.push(this._dataBank);
 
-		this._dataBank.onDidChange(() => this._updateEditors());
+		this._editorDecorator = new EditorDecorator(this._config, this._dataBank);
+		this._toDispose.push(this._editorDecorator);
 
 		this._toDispose.push(vscode.workspace.registerTextDocumentContentProvider(CoverageReportProvider.SCHEME, new CoverageReportProvider(this._dataBank)));
 	}
 
 	public dispose(): void {
-		this.stopSourceFileWatcher();
+		this._stopSourceFileWatcher();
 
 		vscode.Disposable.from(...this._toDispose).dispose();
 		this._toDispose = [];
 	}
 
-	private _updateEditors(): void {
-		vscode.window.visibleTextEditors.forEach(textEditor => {
-			let uri = textEditor.document.uri;
-			let data = this._dataBank.get(uri);
-			if (data) {
-				this._updateEditor(textEditor, data);
-			}
-		});
-	}
-
-	private _updateEditor(editor:vscode.TextEditor, data: IRawCoverageData): void {
-		let toLineRange = (detail:{line:number;}) => new vscode.Range(detail.line - 1, 0, detail.line - 1, 0);
-		let coveredLines = data.lines.details.filter(detail => detail.hit > 0);
-		let missedLines = data.lines.details.filter(detail => detail.hit === 0);
-		editor.setDecorations(this._coveredLineDecType, coveredLines.map(toLineRange));
-		editor.setDecorations(this._missedLineDecType, missedLines.map(toLineRange));
-
-		let branchesMap:{[line:string]:boolean[][]} = {};
-		if (data.branches.details.length > 0) {
-			let currentBranchBatch:IRawBranchDetail[] = [];
-			currentBranchBatch.push(data.branches.details[0]);
-			for (let i = 1; i < data.branches.details.length; i++) {
-				let prev = currentBranchBatch[currentBranchBatch.length - 1];
-				let current = data.branches.details[i];
-
-				if (current.block === prev.block) {
-					currentBranchBatch.push(current);
-				} else {
-					let branches = currentBranchBatch;
-					currentBranchBatch = [current];
-
-					let key = String(branches[0].line);
-					branchesMap[key] = branchesMap[key] || [];
-
-					let value = branches.map(b => b.taken > 0);
-					branchesMap[key].push(value);
-				}
-			}
+	private _stopSourceFileWatcher(): void {
+		if (this._sourceFileWatcher) {
+			this._sourceFileWatcher.dispose();
+			this._sourceFileWatcher = null;
 		}
-
-		let coveredBranches:vscode.DecorationOptions[] = [];
-		let missedBranches:vscode.DecorationOptions[] = [];
-		let partialBranches:vscode.DecorationOptions[] = [];
-		Object.keys(branchesMap).forEach((strLineNumber) => {
-			let branches = branchesMap[strLineNumber];
-			let lineNumber = parseInt(strLineNumber, 10);
-
-			let pieces:string[] = [];
-			let totalCnt = 0, takenCnt = 0;
-			for (let i = 0; i < branches.length; i++) {
-				let branch = branches[i];
-
-				totalCnt += branch.length;
-				for (let j = 0; j < branch.length; j++) {
-					let condition = branch[j];
-					if (condition) {
-						takenCnt++;
-					}
-				}
-
-				pieces.push(branch.map((taken) => {
-					return taken ? '✓' : '∅';
-				}).join(''));
-			}
-
-			let destination:vscode.DecorationOptions[];
-			if (totalCnt === takenCnt) {
-				// Good Job, Sir!
-				destination = coveredBranches;
-			} else if (takenCnt === 0) {
-				// Uh, oh
-				destination = missedBranches;
-			} else {
-				destination = partialBranches;
-			}
-
-			if (pieces.length === 1) {
-				// simple boolean condition
-				if (pieces[0] === '✓∅') {
-					// else branch was missed
-					pieces[0] = ' E ';
-				} else if (pieces[0] === '∅✓') {
-					// if branch was missed
-					pieces[0] = ' I ';
-				}
-			}
-			let line = editor.document.lineAt(lineNumber - 1);
-			destination.push({
-				range: new vscode.Range(line.lineNumber, line.firstNonWhitespaceCharacterIndex, line.lineNumber, line.firstNonWhitespaceCharacterIndex),
-				renderOptions: {
-					before: {
-						contentText: pieces.join('—')
-					}
-				}
-			});
-		});
-		editor.setDecorations(this._coveredBranchDecType, coveredBranches);
-		editor.setDecorations(this._missedBranchDecType, missedBranches);
-		editor.setDecorations(this._partialBranchDecType, partialBranches);
 	}
 
 	public showMenu(): void {
 		let menu: QuickPickItem[] = [];
+
 		if (!this._dataBank.isEmpty()) {
-			menu.push(new ShowCoverageReport(this));
+			menu.push(new QuickPickItem(
+				'Show Coverage Report',
+				() => {
+					vscode.commands.executeCommand('vscode.previewHtml', CoverageReportProvider.COVERAGE_REPORT_URI, vscode.ViewColumn.Two, 'LCOV Coverage Report');
+				}
+			));
 		}
+
 		if (!this._sourceFileWatcher) {
-			menu.push(new StartSourceFileWatcher(this, vscode.window.activeTextEditor.document.uri));
+			let uri = vscode.window.activeTextEditor.document.uri;
+			menu.push(new QuickPickItem(
+				'Begin watching ' + vscode.workspace.asRelativePath(uri),
+				() => {
+					this._stopSourceFileWatcher();
+					this._sourceFileWatcher = new SourceFileWatcher(this._config, uri);
+				}
+			));
 		} else {
-			menu.push(new StopSourceFileWatcher(this, this._sourceFileWatcher));
+			menu.push(new QuickPickItem(
+				'Stop watching ' + vscode.workspace.asRelativePath(this._sourceFileWatcher.uri),
+				() => this._stopSourceFileWatcher()
+			));
 		}
+
 		vscode.window.showQuickPick(menu).then((selected) => {
 			if (selected) {
 				selected.run();
 			}
 		});
 	}
-
-	public showCoverageReport(): void {
-		vscode.commands.executeCommand('vscode.previewHtml', CoverageReportProvider.COVERAGE_REPORT_URI, vscode.ViewColumn.Two, 'LCOV Coverage Report');
-	}
-
-	public startSourceFileWatcher(uri:vscode.Uri): void {
-		this.stopSourceFileWatcher();
-		this._sourceFileWatcher = new SourceFileWatcher(this._config, uri);
-	}
-
-	public stopSourceFileWatcher(): void {
-		if (this._sourceFileWatcher) {
-			this._sourceFileWatcher.dispose();
-			this._sourceFileWatcher = null;
-		}
-	}
 }
-
 
 let controller: Controller = null;
 

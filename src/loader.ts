@@ -7,13 +7,14 @@ import {LOG} from './logger';
 
 const log = LOG('Loader');
 
+export interface IRawLineCoverageDetail {
+	line: number;
+	hit: number;
+}
 export interface IRawLinesCoverageData {
 	found: number;
 	hit: number;
-	details: {
-		line: number;
-		hit: number;
-	}[];
+	details: IRawLineCoverageDetail[];
 }
 export interface IRawFunctionsCoverageData {
 	found: number;
@@ -24,7 +25,7 @@ export interface IRawFunctionsCoverageData {
 		hit: number;
 	}[];
 }
-export interface IRawBranchDetail {
+export interface IRawBranchCoverageDetail {
 	line: number;
 	block: number;
 	branch: number;
@@ -33,7 +34,7 @@ export interface IRawBranchDetail {
 export interface IRawBranchesCoverageData {
 	found: number;
 	hit: number;
-	details: IRawBranchDetail[];
+	details: IRawBranchCoverageDetail[];
 }
 export interface IRawCoverageData {
 	lines: IRawLinesCoverageData;
