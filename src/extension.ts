@@ -11,6 +11,7 @@ import {UriWatcher} from './uriWatcher';
 import {Configuration} from './configuration';
 import {IRawCoverageData, IRawBranchDetail} from './loader';
 import {loadMany} from './loader';
+import {DataBank} from './dataBank';
 
 abstract class QuickPickItem implements vscode.QuickPickItem {
 
@@ -75,36 +76,26 @@ class CoverageReportProvider implements vscode.TextDocumentContentProvider {
 		this.COVERAGE_REPORT_TEMPLATE = fs.readFileSync(ctx.asAbsolutePath('./resources/coverage-report.html')).toString();
 	}
 
-	private _controller:Controller;
+	private _dataBank:DataBank;
 
 	private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
 	public onDidChange = this._onDidChange.event;
 
-	constructor(controller:Controller) {
-		this._controller = controller;
-		this._controller.onDidChangeData(() => {
+	constructor(dataBank:DataBank) {
+		this._dataBank = dataBank;
+		this._dataBank.onDidChange(() => {
 			this._onDidChange.fire(CoverageReportProvider.COVERAGE_REPORT_URI);
 		});
 	}
 
 	public provideTextDocumentContent(uri: vscode.Uri): string {
-		let rawData = this._controller.getData();
 		let workspace = vscode.workspace.rootPath;
-		let data = Object.keys(rawData).map(function(key) {
-			var entry = rawData[key];
-			return {
-				path: entry.file.substr(workspace.length + 1),
-				absolutePath: entry.file,
-				lines: {
-					found: entry.lines.found,
-					hit: entry.lines.hit
-				},
-				branches: {
-					found: entry.branches.found,
-					hit: entry.branches.hit
-				}
-			};
+
+		let data = this._dataBank.getSummary();
+		data.forEach((entry) => {
+			(<any>entry).path = entry.absolutePath.substr(workspace.length + 1);
 		});
+
 		return (
 			CoverageReportProvider.COVERAGE_REPORT_TEMPLATE
 			.replace(/\/\*\$data\*\//, JSON.stringify(data))
@@ -191,12 +182,9 @@ class SourceFileWatcher {
 class Controller {
 	private _config: Configuration;
 	private _toDispose: vscode.Disposable[];
-	private _data: {[uri:string]:IRawCoverageData};
 
 	private _sourceFileWatcher:SourceFileWatcher;
-
-	private _onDidChangeData = new vscode.EventEmitter<void>();
-	public onDidChangeData = this._onDidChangeData.event;
+	private _dataBank: DataBank;
 
 	private _coveredLineDecType: vscode.TextEditorDecorationType;
 	private _missedLineDecType: vscode.TextEditorDecorationType;
@@ -207,7 +195,7 @@ class Controller {
 	constructor(config: Configuration) {
 		this._config = config;
 		this._toDispose = [];
-		this._data = Object.create(null);
+
 
 		this._sourceFileWatcher = null;
 
@@ -261,15 +249,12 @@ class Controller {
 		// watcher to update decorations
 		this._toDispose.push(vscode.window.onDidChangeActiveTextEditor(() => this._updateEditors()));
 
-		// watcher to update data
-		let watching = [vscode.Uri.file(this._config.absolutePath)];
-		if (this._config.absoluteOverwritingPath) {
-			watching.push(vscode.Uri.file(this._config.absoluteOverwritingPath));
-		}
-		this._toDispose.push(new UriWatcher("**/*.info", watching, () => this._updateData()));
-		this._updateData();
+		this._dataBank = new DataBank(this._config);
+		this._toDispose.push(this._dataBank);
 
-		this._toDispose.push(vscode.workspace.registerTextDocumentContentProvider(CoverageReportProvider.SCHEME, new CoverageReportProvider(this)));
+		this._dataBank.onDidChange(() => this._updateEditors());
+
+		this._toDispose.push(vscode.workspace.registerTextDocumentContentProvider(CoverageReportProvider.SCHEME, new CoverageReportProvider(this._dataBank)));
 	}
 
 	public dispose(): void {
@@ -279,34 +264,12 @@ class Controller {
 		this._toDispose = [];
 	}
 
-	public getData(): {[uri:string]:IRawCoverageData} {
-		return this._data;
-	}
-
-	private _updateData(): void {
-		this._data = Object.create(null);
-		this._onDidChangeData.fire(void 0);
-		loadMany([this._config.absolutePath, this._config.absoluteOverwritingPath]).then((results) => {
-			results.forEach((result) => {
-				result.data.forEach((fileData) => {
-					let uri = vscode.Uri.file(fileData.file);
-					this._data[uri.toString()] = fileData;
-				});
-			});
-
-			this._onDidChangeData.fire(void 0);
-			this._updateEditors();
-
-		}, (err) => {
-			log.error(err);
-		});
-	}
-
 	private _updateEditors(): void {
 		vscode.window.visibleTextEditors.forEach(textEditor => {
 			let uri = textEditor.document.uri;
-			if (this._data[uri.toString()]) {
-				this._updateEditor(textEditor, this._data[uri.toString()]);
+			let data = this._dataBank.get(uri);
+			if (data) {
+				this._updateEditor(textEditor, data);
 			}
 		});
 	}
@@ -404,7 +367,7 @@ class Controller {
 
 	public showMenu(): void {
 		let menu: QuickPickItem[] = [];
-		if (Object.keys(this._data).length > 0) {
+		if (!this._dataBank.isEmpty()) {
 			menu.push(new ShowCoverageReport(this));
 		}
 		if (!this._sourceFileWatcher) {
