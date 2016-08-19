@@ -274,6 +274,8 @@ class Controller {
 				color: 'darkgreen',
 			}
 		});
+		this._toDispose.push(this._coveredBranchDecType);
+
 		// decoration type for missed branches
 		this._missedBranchDecType = vscode.window.createTextEditorDecorationType({
 			before: {
@@ -281,6 +283,8 @@ class Controller {
 				color: 'white',
 			}
 		});
+		this._toDispose.push(this._missedBranchDecType);
+
 		// decoration type for partial branches
 		this._partialBranchDecType = vscode.window.createTextEditorDecorationType({
 			before: {
@@ -288,6 +292,7 @@ class Controller {
 				color: 'white',
 			}
 		});
+		this._toDispose.push(this._partialBranchDecType);
 
 		// watcher to update decorations
 		this._toDispose.push(vscode.window.onDidChangeActiveTextEditor(() => this._updateEditors()));
