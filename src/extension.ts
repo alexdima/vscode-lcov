@@ -72,15 +72,16 @@ interface IFunctionsCoverageData {
 		hit: number;
 	}[];
 }
+interface IBranchDetail {
+	line: number;
+	block: number;
+	branch: number;
+	taken: number;
+}
 interface IBranchesCoverageData {
 	found: number;
 	hit: number;
-	details: {
-		line: number;
-		block: number;
-		branch: number;
-		taken: number;
-	}[];
+	details: IBranchDetail[];
 }
 interface ICoverageData {
 	lines: ILinesCoverageData;
@@ -253,9 +254,10 @@ class SourceFileWatcher {
 		}
 
 		console.log('EXECUTING: ' + command);
-		cp.exec(command, {
+		var proc = cp.exec(command, {
 			cwd: workspaceRoot
 		}, (err, stdout, stderr) => {
+			console.log('process finished!');
 			console.log(stdout);
 			console.log(stderr);
 			if (err) {
@@ -263,6 +265,9 @@ class SourceFileWatcher {
 				return;
 			}
 		});
+		// proc.on('exit', (code) => {
+		// 	console.log('exited with code: ' + code);
+		// });
 	}
 
 	public dispose(): void {
@@ -282,6 +287,7 @@ class Controller {
 	
 	private _coveredLineDecType: vscode.TextEditorDecorationType;
 	private _missedLineDecType: vscode.TextEditorDecorationType;
+	private _branchDecType: vscode.TextEditorDecorationType;
 
 	constructor(config: Configuration) {
 		this._config = config;
@@ -309,6 +315,14 @@ class Controller {
 			overviewRulerLane: vscode.OverviewRulerLane.Right
 		});
 		this._toDispose.push(this._missedLineDecType);
+
+		// decoration type for missed else branches
+		this._branchDecType = vscode.window.createTextEditorDecorationType({
+			before: {
+				backgroundColor: 'black',
+				color: 'white',
+			}
+		});
 
 		// watcher to update decorations
 		this._toDispose.push(vscode.window.onDidChangeActiveTextEditor(() => this._updateEditors()));
@@ -393,13 +407,75 @@ class Controller {
 	}
 
 	private _updateEditor(editor:vscode.TextEditor, data: ICoverageData): void {
-		let covered = data.lines.details.filter(detail => detail.hit > 0);
-		let missed = data.lines.details.filter(detail => detail.hit === 0);
-		
-		let toRange = (detail:{line:number;}) => new vscode.Range(detail.line - 1, 0, detail.line - 1, 0);
+		let toLineRange = (detail:{line:number;}) => new vscode.Range(detail.line - 1, 0, detail.line - 1, 0);
+		let coveredLines = data.lines.details.filter(detail => detail.hit > 0);
+		let missedLines = data.lines.details.filter(detail => detail.hit === 0);
+		editor.setDecorations(this._coveredLineDecType, coveredLines.map(toLineRange));
+		editor.setDecorations(this._missedLineDecType, missedLines.map(toLineRange));
 
-		editor.setDecorations(this._coveredLineDecType, covered.map(toRange));
-		editor.setDecorations(this._missedLineDecType, missed.map(toRange));
+		let branchesMap:{[line:string]:boolean[][]} = {};
+		if (data.branches.details.length > 0) {
+			let currentBranchBatch:IBranchDetail[] = [];
+			currentBranchBatch.push(data.branches.details[0]);
+			for (let i = 1; i < data.branches.details.length; i++) {
+				let prev = currentBranchBatch[currentBranchBatch.length - 1];
+				let current = data.branches.details[i];
+
+				if (current.block === prev.block) {
+					currentBranchBatch.push(current);
+				} else {
+					let branches = currentBranchBatch;
+					currentBranchBatch = [current];
+
+					let key = String(branches[0].line);
+					branchesMap[key] = branchesMap[key] || [];
+
+					let value = branches.map(b => b.taken > 0);
+					branchesMap[key].push(value);
+				}
+			}
+		}
+
+		let missedBranches:vscode.DecorationOptions[] = [];
+		Object.keys(branchesMap).forEach((strLineNumber) => {
+			let branches = branchesMap[strLineNumber];
+			let lineNumber = parseInt(strLineNumber, 10);
+
+			let pieces:string[] = [];
+			let hasSomethingInteresting = false;
+			for (let i = 0; i < branches.length; i++) {
+				let branch = branches[i];
+				
+				let totalCnt = branch.length;
+				let takenCnt = 0;
+				for (let j = 0; j < branch.length; j++) {
+					let condition = branch[j];
+					if (condition) {
+						takenCnt++;
+					}
+				}
+
+				hasSomethingInteresting = (takenCnt !== totalCnt && takenCnt > 0);
+
+				pieces.push(branch.map((taken) => {
+					return taken ? '✓' : '∅';
+				}).join(''));
+			}
+
+			if (hasSomethingInteresting) {
+				let line = editor.document.lineAt(lineNumber - 1);
+				missedBranches.push({
+					range: new vscode.Range(line.lineNumber, line.firstNonWhitespaceCharacterIndex, line.lineNumber, line.firstNonWhitespaceCharacterIndex),
+					renderOptions: {
+						before: {
+							contentText: pieces.join('—')
+						}
+					}
+				});
+			}
+		});
+
+		editor.setDecorations(this._branchDecType, missedBranches);
 	}
 
 	public showMenu(): void {
