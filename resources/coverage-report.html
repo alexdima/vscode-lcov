@@ -65,6 +65,27 @@ Filter:<input type="text" id="filter" />
 var rawData = /*$data*/;
 var data = null;
 
+var allSortFunc = {
+    'file': function(a,b) {
+        if (a.path < b.path) {
+            return -1;
+        }
+        return 1;
+    },
+    'lines': function(a,b) {
+        var aCov = computeCoverage(a.lines.hit, a.lines.found);
+        var bCov = computeCoverage(b.lines.hit, b.lines.found);
+        return aCov.percentage - bCov.percentage;
+    },
+    'branches': function(a,b) {
+        var aCov = computeCoverage(a.branches.hit, a.branches.found);
+        var bCov = computeCoverage(b.branches.hit, b.branches.found);
+        return aCov.percentage - bCov.percentage;
+    }
+}
+
+var lastSortFunc = allSortFunc['file'];
+
 (function() {
     var depth = document.getElementById('depth');
     depth.value = 10;
@@ -74,10 +95,18 @@ var data = null;
 
     var update = function() {
         var depthValue = depth.value;
+        var filterValue = filter.value;
         var sep = rawData[0].absolutePath.indexOf('\\') > 0 ? '\\' : '/';
         
+        var filteredData = rawData.filter(function(entry) {
+            if (filterValue === '') {
+                return true;
+            }
+            return (entry.path.indexOf(filterValue) >= 0);
+        });
+
         var map = {};
-        rawData.forEach(function(entry) {
+        filteredData.forEach(function(entry) {
             var segments = entry.path.split(sep);
             segments = segments.slice(0, depthValue);
 
@@ -101,7 +130,11 @@ var data = null;
     };
     depth.onchange = function() {
         update();
-        render();
+        sortAndRender();
+    };
+    filter.oninput = function() {
+        update();
+        sortAndRender();
     };
     update();
 })();
@@ -176,40 +209,25 @@ function render() {
     document.getElementById('output').innerHTML = finalHTML;
 }
 
-var allSortFunc = {
-    'file': function(a,b) {
-        if (a.path < b.path) {
-            return -1;
-        }
-        return 1;
-    },
-    'lines': function(a,b) {
-        var aCov = computeCoverage(a.lines.hit, a.lines.found);
-        var bCov = computeCoverage(b.lines.hit, b.lines.found);
-        return aCov.percentage - bCov.percentage;
-    },
-    'branches': function(a,b) {
-        var aCov = computeCoverage(a.branches.hit, a.branches.found);
-        var bCov = computeCoverage(b.branches.hit, b.branches.found);
-        return aCov.percentage - bCov.percentage;
-    }
+function sortAndRender() {
+    data.sort(lastSortFunc);
+    render();
 }
 
 function resort(key, dir) {
     var _sortFunc = allSortFunc[key];
 
-    var sortFunc = _sortFunc;
+    lastSortFunc = _sortFunc;
     if (dir === 'desc') {
-        sortFunc = function(a,b) {
+        lastSortFunc = function(a,b) {
             return -_sortFunc(a,b);
         }
     }
-
-    data.sort(sortFunc);
-    render();
+    
+    sortAndRender();
 }
 
-resort('file', 'asc');
+sortAndRender();
 
 </script>
 
