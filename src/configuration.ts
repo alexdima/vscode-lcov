@@ -5,22 +5,11 @@ import * as path from 'path';
 
 export class Configuration {
 
-	private _path: string;
-	private _overwritingPath: string;
+	private _paths: vscode.Uri[];
 	private _watcherExec: string;
 
-	public get relativePath(): string {
-		return this._path;
-	}
-	public get absolutePath(): string {
-		return path.join(vscode.workspace.rootPath, this._path);
-	}
-
-	public get relativeOverwritingPath(): string {
-		return this._overwritingPath;
-	}
-	public get absoluteOverwritingPath(): string {
-		return this._overwritingPath !== null ? path.join(vscode.workspace.rootPath, this._overwritingPath) : null;
+	public get paths(): vscode.Uri[] {
+		return this._paths;
 	}
 
 	public get watcherExec(): string {
@@ -29,8 +18,16 @@ export class Configuration {
 
 	constructor() {
 		let conf = vscode.workspace.getConfiguration('lcov');
-		this._path = conf['path'];
-		this._overwritingPath = conf['overwritingPath'];
+
+		let rawPaths = <string|string[]>conf['path'];
+		let paths:string[];
+		if (Array.isArray(rawPaths)) {
+			paths = rawPaths;
+		} else {
+			paths = [rawPaths];
+		}
+
+		this._paths = paths.map(p => vscode.Uri.file(path.join(vscode.workspace.rootPath, p)));
 
 		if (/^win/.test(process.platform)) {
 			this._watcherExec = conf['watcherExec'].windows;
@@ -44,9 +41,20 @@ export class Configuration {
 	public equals(other: Configuration) {
 		return (
 			other
-			&& this._path === other._path
-			&& this._overwritingPath === other._overwritingPath
+			&& Configuration._uriArrayEquals(this._paths, other._paths)
 			&& this._watcherExec === other._watcherExec
 		);
+	}
+
+	private static _uriArrayEquals(a:vscode.Uri[], b:vscode.Uri[]): boolean {
+		if (a.length !== b.length) {
+			return false;
+		}
+		for (let i = 0, len = a.length; i < len; i++) {
+			if (a[i].toString() !== b[i].toString()) {
+				return false;
+			}
+		}
+		return true;
 	}
 }

@@ -35,11 +35,7 @@ export class DataBank {
 		this._data = Object.create(null);
 
 		// watcher to update data
-		let watching = [vscode.Uri.file(this._config.absolutePath)];
-		if (this._config.absoluteOverwritingPath) {
-			watching.push(vscode.Uri.file(this._config.absoluteOverwritingPath));
-		}
-		this._watcher = new UriWatcher("**/*.info", watching, () => this._updateData());
+		this._watcher = new UriWatcher("**/*.info", this._config.paths, () => this._updateData());
 		this._updateData();
 	}
 
@@ -73,7 +69,7 @@ export class DataBank {
 	}
 
 	private _updateData(): void {
-		loadMany([this._config.absolutePath, this._config.absoluteOverwritingPath]).then((results) => {
+		loadMany(this._config.paths).then((results) => {
 
 			this._data = Object.create(null);
 

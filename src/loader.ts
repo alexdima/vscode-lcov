@@ -1,6 +1,7 @@
 'use strict';
 
 import * as fs from 'fs';
+import * as vscode from 'vscode';
 var parse = require('lcov-parse');
 
 import {LOG} from './logger';
@@ -125,7 +126,7 @@ export function loadOne(filePath:string): Promise<ILoadResult> {
 	});
 }
 
-export function loadMany(filePaths:string[]): Promise<ILoadResult[]> {
-	let promises:Promise<ILoadResult>[] = filePaths.map(filePath => loadOne(filePath));
+export function loadMany(uris:vscode.Uri[]): Promise<ILoadResult[]> {
+	let promises:Promise<ILoadResult>[] = uris.map(filePath => loadOne(filePath.fsPath));
 	return Promise.all<ILoadResult>(promises);
 }

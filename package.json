@@ -21,18 +21,16 @@
       "order": 2,
       "properties": {
         "lcov.path": {
-          "type": [
-            "string"
-          ],
+          "oneOf": [{
+            "type": "string"
+          }, {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }],
           "default": "coverage/lcov.info",
           "description": "Path to lcov file"
-        },
-        "lcov.overwritingPath": {
-          "type": [
-            "string", "null"
-          ],
-          "default": null,
-          "description": "Path to overwriting lcov file"
         },
         "lcov.watcherExec.osx": {
           "type": "string",
