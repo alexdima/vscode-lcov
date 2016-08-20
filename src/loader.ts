@@ -3,14 +3,15 @@
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 var parse = require('lcov-parse');
+var lcovSourcemap = require('lcov-sourcemap');
 
 import {LOG} from './logger';
 import {toPromiseFunc} from './utils';
+import {FileCache} from './fileCache';
 
 const log = LOG('Loader');
 const pReadFile = toPromiseFunc(fs.readFile);
 const pParse = toPromiseFunc(parse);
-const pStat = toPromiseFunc(fs.stat);
 
 export interface IRawLineCoverageDetail {
 	line: number;
@@ -56,75 +57,54 @@ export interface ICoverageData {
 	uri: vscode.Uri;
 }
 
-function _load(filePath:string): Promise<ICoverageData[]> {
-	log.info('Reading ' + filePath);
-
-	return pReadFile(filePath).then((data) => {
-		return pParse(data.toString()).then((data: IRawCoverageData[]) => {
-			return data.map((entry) => {
-				let uri = vscode.Uri.file(entry.file);
-				return {
-					lines: entry.lines,
-					functions: entry.functions,
-					branches: entry.branches,
-					title: entry.title,
-					uri: uri
-				}
-			})
-		});
-	});
-}
-
-interface ICacheEntry {
-	data: ICoverageData[];
-	key: number;
-}
-var cache: {[filePath:string]:ICacheEntry;} = {};
-
 export interface ILoadResult {
 	filePath: string;
 	data: ICoverageData[];
 }
-export function loadOne(filePath:string): Promise<ILoadResult> {
-	if (filePath === null) {
-		return Promise.reject<ILoadResult>(new Error('Bad Path'));
-	}
 
-	return pStat(filePath).then((stats) => {
-		let myKey = stats.mtime.getTime();
+class LcovCache extends FileCache<ILoadResult> {
 
-		let cacheEntry = cache[filePath];
-		if (cacheEntry) {
-			if (cacheEntry.key === myKey) {
-				log.debug('Cache hit for ' + filePath);
-				return {
-					filePath: filePath,
-					data: cacheEntry.data
-				}
-			}
-		}
+	public static INSTANCE = new LcovCache();
 
-		return _load(filePath).then((data) => {
-			let cacheEntry:ICacheEntry = {
-				data: data,
-				key: myKey
-			};
-			cache[filePath] = cacheEntry;
+	public get(uri:vscode.Uri): Promise<ILoadResult> {
+		let fsPath = uri.fsPath;
+
+		return super.get(uri).then(null, (err) => {
+			log.error(err);
 			return {
-				filePath: filePath,
-				data: cacheEntry.data
+				filePath: fsPath,
+				data: null
 			};
 		});
-	}).then(null, (err) => {
-		log.error(err);
-		return {
-			filePath: filePath,
-			data: []
-		}
-	});
+	}
+
+	protected _get(uri:vscode.Uri): Promise<ILoadResult> {
+		let fsPath = uri.fsPath;
+
+		log.info('Reading ' + fsPath);
+
+		return pReadFile(fsPath).then((buf) => {
+			return pParse(buf.toString()).then((data: IRawCoverageData[]) => {
+				return {
+					filePath: fsPath,
+					data: data.map((entry) => {
+						let uri = vscode.Uri.file(entry.file);
+						return {
+							lines: entry.lines,
+							functions: entry.functions,
+							branches: entry.branches,
+							title: entry.title,
+							uri: uri
+						}
+					})
+				};
+			});
+		});
+	}
+
 }
 
 export function loadMany(uris:vscode.Uri[]): Promise<ILoadResult[]> {
-	let promises:Promise<ILoadResult>[] = uris.map(filePath => loadOne(filePath.fsPath));
+	let promises:Promise<ILoadResult>[] = uris.map(uri => LcovCache.INSTANCE.get(uri));
 	return Promise.all<ILoadResult>(promises);
 }
