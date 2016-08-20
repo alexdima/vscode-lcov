@@ -4,7 +4,7 @@ import * as vscode from 'vscode';
 
 import {DataBank} from './dataBank';
 import {Configuration} from './configuration';
-import {IRawCoverageData, IRawLineCoverageDetail, IRawBranchCoverageDetail} from './loader';
+import {ICoverageData, IRawLineCoverageDetail, IRawBranchCoverageDetail} from './loader';
 
 export class EditorDecorator {
 
@@ -89,7 +89,7 @@ export class EditorDecorator {
 		});
 	}
 
-	private _updateEditor(editor:vscode.TextEditor, data: IRawCoverageData): void {
+	private _updateEditor(editor:vscode.TextEditor, data: ICoverageData): void {
 		let lineCov = computeLineCoverageDecorations(data.lines.details);
 		editor.setDecorations(this._coveredLineDecType, lineCov.covered);
 		editor.setDecorations(this._missedLineDecType, lineCov.missed);

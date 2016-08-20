@@ -6,10 +6,15 @@ import * as path from 'path';
 export class Configuration {
 
 	private _paths: vscode.Uri[];
+	private _sourceMaps: boolean;
 	private _watcherExec: string;
 
 	public get paths(): vscode.Uri[] {
 		return this._paths;
+	}
+
+	public get sourceMaps(): boolean {
+		return this._sourceMaps;
 	}
 
 	public get watcherExec(): string {
@@ -29,6 +34,8 @@ export class Configuration {
 
 		this._paths = paths.map(p => vscode.Uri.file(path.join(vscode.workspace.rootPath, p)));
 
+		this._sourceMaps = Boolean(conf['sourceMaps']);
+
 		if (/^win/.test(process.platform)) {
 			this._watcherExec = conf['watcherExec'].windows;
 		} else if ('darwin' === process.platform) {
@@ -42,6 +49,7 @@ export class Configuration {
 		return (
 			other
 			&& Configuration._uriArrayEquals(this._paths, other._paths)
+			&& this._sourceMaps === other._sourceMaps
 			&& this._watcherExec === other._watcherExec
 		);
 	}

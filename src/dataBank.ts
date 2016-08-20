@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 
 import {Configuration} from './configuration';
-import {IRawCoverageData, loadMany} from './loader';
+import {IRawCoverageData, ILoadResult, loadMany} from './loader';
 import {LOG} from './logger';
 import {UriWatcher} from './uriWatcher';
 
@@ -19,6 +19,10 @@ export interface ISummary {
 		found: number;
 		hit: number;
 	}
+}
+
+interface IData {
+	[uri:string]: IRawCoverageData;
 }
 
 export class DataBank {
@@ -71,19 +75,25 @@ export class DataBank {
 	private _updateData(): void {
 		loadMany(this._config.paths).then((results) => {
 
-			this._data = Object.create(null);
+			let accumulated = DataBank._merge(results);
 
-			results.forEach((result) => {
-				result.data.forEach((fileData) => {
-					let uri = vscode.Uri.file(fileData.file);
-					this._data[uri.toString()] = fileData;
-				});
-			});
-
+			this._data = accumulated;
 			this._onDidChange.fire(void 0);
 
 		}, (err) => {
 			log.error(err);
 		});
+	}
+
+	private static _merge(results:ILoadResult[]): IData {
+		let accumulated:IData = Object.create(null);
+		results.forEach((result) => {
+			result.data.forEach((fileData) => {
+				let uri = vscode.Uri.file(fileData.file);
+				log.debug('Received coverage data for ' + uri.fsPath);
+				accumulated[uri.toString()] = fileData;
+			});
+		});
+		return accumulated;
 	}
 }

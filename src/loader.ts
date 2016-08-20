@@ -5,8 +5,12 @@ import * as vscode from 'vscode';
 var parse = require('lcov-parse');
 
 import {LOG} from './logger';
+import {toPromiseFunc} from './utils';
 
 const log = LOG('Loader');
+const pReadFile = toPromiseFunc(fs.readFile);
+const pParse = toPromiseFunc(parse);
+const pStat = toPromiseFunc(fs.stat);
 
 export interface IRawLineCoverageDetail {
 	line: number;
@@ -41,51 +45,45 @@ export interface IRawCoverageData {
 	lines: IRawLinesCoverageData;
 	functions: IRawFunctionsCoverageData;
 	branches: IRawBranchesCoverageData;
-	title:string;
-	file:string;
+	title: string;
+	file: string;
+}
+export interface ICoverageData {
+	lines: IRawLinesCoverageData;
+	functions: IRawFunctionsCoverageData;
+	branches: IRawBranchesCoverageData;
+	title: string;
+	uri: vscode.Uri;
 }
 
-interface ICallbackFunc<T,R> {
-	(arg:T, cb:(err:any, result:R)=>void): void;
-}
-interface IPromiseFunc<T,R> {
-	(arg:T): Promise<R>;
-}
-function toPromiseFunc<T,R>(target:ICallbackFunc<T,R>): IPromiseFunc<T,R> {
-	return (arg:T) => {
-		return new Promise<R>((c, e) => {
-			target(arg, (err, data) => {
-				if(err) {
-					e(err);
-				} else {
-					c(data);
-				}
-			});
-		});
-	}
-}
-
-const pReadFile = toPromiseFunc(fs.readFile);
-const pParse = toPromiseFunc(parse);
-const pStat = toPromiseFunc(fs.stat);
-
-function _load(filePath:string): Promise<IRawCoverageData[]> {
+function _load(filePath:string): Promise<ICoverageData[]> {
 	log.info('Reading ' + filePath);
 
 	return pReadFile(filePath).then((data) => {
-		return pParse(data.toString());
+		return pParse(data.toString()).then((data: IRawCoverageData[]) => {
+			return data.map((entry) => {
+				let uri = vscode.Uri.file(entry.file);
+				return {
+					lines: entry.lines,
+					functions: entry.functions,
+					branches: entry.branches,
+					title: entry.title,
+					uri: uri
+				}
+			})
+		});
 	});
 }
 
 interface ICacheEntry {
-	data: IRawCoverageData[];
+	data: ICoverageData[];
 	key: number;
 }
 var cache: {[filePath:string]:ICacheEntry;} = {};
 
 export interface ILoadResult {
-	filePath:string;
-	data:IRawCoverageData[];
+	filePath: string;
+	data: ICoverageData[];
 }
 export function loadOne(filePath:string): Promise<ILoadResult> {
 	if (filePath === null) {

@@ -21,16 +21,24 @@
       "order": 2,
       "properties": {
         "lcov.path": {
-          "oneOf": [{
-            "type": "string"
-          }, {
-            "type": "array",
-            "items": {
+          "oneOf": [
+            {
               "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
-          }],
+          ],
           "default": "coverage/lcov.info",
           "description": "Path to lcov file"
+        },
+        "lcov.sourceMaps": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use JavaScript source maps."
         },
         "lcov.watcherExec.osx": {
           "type": "string",
@@ -49,13 +57,18 @@
         }
       }
     },
-    "commands": [{
-      "command": "lcov.menu",
-      "title": "LCOV Menu"
-    }],
-    "keybindings": [{
-      "key": "ctrl+t", "command": "lcov.menu"
-    }]
+    "commands": [
+      {
+        "command": "lcov.menu",
+        "title": "LCOV Menu"
+      }
+    ],
+    "keybindings": [
+      {
+        "key": "ctrl+t",
+        "command": "lcov.menu"
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
@@ -67,6 +80,7 @@
     "vscode": "^0.11.0"
   },
   "dependencies": {
-    "lcov-parse": "0.0.10"
+    "lcov-parse": "0.0.10",
+    "lcov-sourcemap": "^0.3.0"
   }
 }
