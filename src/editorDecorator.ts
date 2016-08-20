@@ -27,19 +27,15 @@ export class EditorDecorator {
 		// decoration type for covered lines
 		this._coveredLineDecType = vscode.window.createTextEditorDecorationType({
 			backgroundColor: 'rgba(208,233,153,0.1)',
-			isWholeLine: true,
-
-			overviewRulerColor: 'rgba(208,233,153,0.8)',
-			overviewRulerLane: vscode.OverviewRulerLane.Right
+			isWholeLine: true
 		});
 
 		// decoration type for missed lines
 		this._missedLineDecType = vscode.window.createTextEditorDecorationType({
 			backgroundColor: 'rgba(216,134,123,0.1)',
 			isWholeLine: true,
-
 			overviewRulerColor: 'rgba(216,134,123,0.8)',
-			overviewRulerLane: vscode.OverviewRulerLane.Right
+			overviewRulerLane: vscode.OverviewRulerLane.Left
 		});
 
 		// decoration type for covered branches
@@ -55,7 +51,9 @@ export class EditorDecorator {
 			before: {
 				backgroundColor: 'darkred',
 				color: 'white',
-			}
+			},
+			overviewRulerColor: 'rgba(216,134,123,0.8)',
+			overviewRulerLane: vscode.OverviewRulerLane.Left
 		});
 
 		// decoration type for partial branches
@@ -63,7 +61,9 @@ export class EditorDecorator {
 			before: {
 				backgroundColor: 'black',
 				color: 'white',
-			}
+			},
+			overviewRulerColor: 'rgba(216,134,123,0.8)',
+			overviewRulerLane: vscode.OverviewRulerLane.Left
 		});
 
 		// watcher to update decorations
