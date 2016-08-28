@@ -2,6 +2,29 @@
 
 import * as vscode from 'vscode';
 
+enum LogLevel {
+	Debug = 1,
+	Info = 2,
+	Warn = 4,
+	Error = 8
+}
+module LogLevel {
+	export function asString(logLevel: LogLevel): string {
+		switch (logLevel) {
+			case LogLevel.Debug:
+				return '[DEBUG]';
+			case LogLevel.Info:
+				return '[INFO ]';
+			case LogLevel.Warn:
+				return '[WARN ]';
+			case LogLevel.Error:
+				return '[ERROR]';
+		}
+	}
+}
+
+const LOG_FILTER = LogLevel.Error | LogLevel.Warn | LogLevel.Info;// | LogLevel.Debug;
+
 let outputChannel: vscode.OutputChannel = null;
 
 export function initLog(context:vscode.ExtensionContext): void {
@@ -38,8 +61,12 @@ function time(): string {
 	return `[${twoDigits(h)}:${twoDigits(m)}:${twoDigits(s)}.${threeDigits(ms)}]`
 }
 
-function bind(prefix:string): IWriteFunc {
-	return (what:string) => outputChannel.appendLine(time() + prefix + what);
+function bind(logLevel: LogLevel, prefix:string): IWriteFunc {
+	return (what:string) => {
+		if (logLevel & LOG_FILTER) {
+			outputChannel.appendLine(time() + LogLevel.asString(logLevel) + prefix + what);
+		}
+	}
 }
 
 function rpad(str:string, n:number): string {
@@ -52,9 +79,9 @@ function rpad(str:string, n:number): string {
 export function LOG(prefix:string) {
 	prefix = rpad(prefix, 20);
 	return {
-		error: bind('[ERROR][' + prefix + ']: '),
-		warn: bind('[WARN ][' + prefix + ']: '),
-		info: bind('[INFO ][' + prefix + ']: '),
-		debug: bind('[DEBUG][' + prefix + ']: '),
+		error: bind(LogLevel.Error, '[' + prefix + ']: '),
+		warn: bind(LogLevel.Warn, '[' + prefix + ']: '),
+		info: bind(LogLevel.Info, '[' + prefix + ']: '),
+		debug: bind(LogLevel.Debug, '[' + prefix + ']: '),
 	}
 }

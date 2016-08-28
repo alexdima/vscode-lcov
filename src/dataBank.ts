@@ -164,7 +164,7 @@ class File implements ICoverageData {
 	branches: IRawBranchesCoverageData;
 
 	constructor(uri:vscode.Uri) {
-		log.info('Received mapped coverage data for ' + uri.fsPath);
+		log.debug('Received mapped coverage data for ' + uri.fsPath);
 		this.uri = uri;
 		this.title = '';
 		this.lines = {
