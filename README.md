@@ -4,7 +4,7 @@ Renders Line and Branch coverage from `lcov.info` files interactively.
 
 ## Live coverage info
 
-![Live info](images/lcov2.gif)
+![Live info](https://cloud.githubusercontent.com/assets/5047891/18036349/9101c648-6d68-11e6-9502-4ed14e03f51e.gif)
 
 ## Features
 
@@ -15,8 +15,7 @@ Renders Line and Branch coverage from `lcov.info` files interactively.
 * supports JavaScript source maps
 
 ## Coverage Report
-
-![Coverage Report](images/lcov3.gif)
+![Coverage Report](https://cloud.githubusercontent.com/assets/5047891/18036350/94acd634-6d68-11e6-908b-a18ef6b80c0f.gif)
 
 This is the README for your extension "vscode-lcov". After writing up a brief description, we recommend including the following sections.
 

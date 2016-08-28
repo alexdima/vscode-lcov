@@ -13,6 +13,7 @@
   "activationEvents": [
     "*"
   ],
+  "icon": "./icon.png",
   "main": "./out/src/extension",
   "contributes": {
     "configuration": {
