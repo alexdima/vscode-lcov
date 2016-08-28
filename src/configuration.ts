@@ -3,11 +3,27 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 
+interface IRawOSWatchData {
+	pattern?: string;
+	command?: string;
+}
+
+interface IRawWatchData extends IRawOSWatchData {
+	osx?: IRawOSWatchData;
+	windows?: IRawOSWatchData;
+	linux?: IRawOSWatchData;
+}
+
+export interface IWatchData {
+	pattern: string;
+	command: string;
+}
+
 export class Configuration {
 
 	private _paths: vscode.Uri[];
 	private _sourceMaps: boolean;
-	private _watcherExec: string;
+	private _watchConf: IWatchData[];
 
 	public get paths(): vscode.Uri[] {
 		return this._paths;
@@ -17,8 +33,8 @@ export class Configuration {
 		return this._sourceMaps;
 	}
 
-	public get watcherExec(): string {
-		return this._watcherExec;
+	public get watchConf(): IWatchData[] {
+		return this._watchConf;
 	}
 
 	constructor() {
@@ -36,13 +52,28 @@ export class Configuration {
 
 		this._sourceMaps = Boolean(conf['sourceMaps']);
 
-		if (/^win/.test(process.platform)) {
-			this._watcherExec = conf['watcherExec'].windows;
-		} else if ('darwin' === process.platform) {
-			this._watcherExec = conf['watcherExec'].osx;
-		} else {
-			this._watcherExec = conf['watcherExec'].linux;
-		}
+		this._watchConf = conf['watch'].map((watchConf:IRawWatchData) => {
+			let osOverride:IRawOSWatchData = null;
+			if (/^win/.test(process.platform)) {
+				osOverride = watchConf.windows;
+			} else if ('darwin' === process.platform) {
+				osOverride = watchConf.osx;
+			} else {
+				osOverride = watchConf.linux;
+			}
+
+			if (!osOverride) {
+				osOverride = {
+					pattern: null,
+					command: null
+				};
+			}
+
+			return {
+				pattern: osOverride.pattern || watchConf.pattern,
+				command: osOverride.command || watchConf.command
+			};
+		});
 	}
 
 	public equals(other: Configuration) {
@@ -50,7 +81,7 @@ export class Configuration {
 			other
 			&& Configuration._uriArrayEquals(this._paths, other._paths)
 			&& this._sourceMaps === other._sourceMaps
-			&& this._watcherExec === other._watcherExec
+			&& Configuration._watchConfArrayEquals(this._watchConf, other._watchConf)
 		);
 	}
 
@@ -64,5 +95,24 @@ export class Configuration {
 			}
 		}
 		return true;
+	}
+
+	private static _watchConfArrayEquals(a:IWatchData[], b:IWatchData[]): boolean {
+		if (a.length !== b.length) {
+			return false;
+		}
+		for (let i = 0, len = a.length; i < len; i++) {
+			if (!this._watchConfEquals(a[i], b[i])) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	private static _watchConfEquals(a:IWatchData, b:IWatchData): boolean {
+		return (
+			a.pattern === b.pattern
+			&& a.command === b.command
+		);
 	}
 }

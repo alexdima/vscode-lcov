@@ -40,6 +40,35 @@
           "default": false,
           "description": "Use JavaScript source maps."
         },
+        "lcov.watch": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "pattern": { "type": "string" },
+              "command": { "type": "string" },
+              "osx": {
+                "properties": {
+                  "pattern": { "type": "string" },
+                  "command": { "type": "string" }
+                }
+              },
+              "windows": {
+                "properties": {
+                  "pattern": { "type": "string" },
+                  "command": { "type": "string" }
+                }
+              },
+              "linux": {
+                "properties": {
+                  "pattern": { "type": "string" },
+                  "command": { "type": "string" }
+                }
+              }
+            }
+          },
+          "default": []
+        },
         "lcov.watcherExec.osx": {
           "type": "string",
           "default": null,

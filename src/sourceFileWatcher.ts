@@ -6,45 +6,54 @@ import * as vm from 'vm';
 import * as cp from 'child_process';
 
 import {Configuration} from './configuration';
-import {UriWatcher} from './uriWatcher';
 import {LOG} from './logger';
 
 const log = LOG('SourceFileWatcher');
 
 export class SourceFileWatcher {
 
-	private _config:Configuration;
-	private _uri:vscode.Uri;
-	public get uri() { return this._uri; }
+	private _pattern:string;
+	private _command:string;
+	private _watcher: vscode.FileSystemWatcher;
 
-	private _watcher: UriWatcher;
-	private _runTimeout: number;
-
-	constructor(config:Configuration, uri:vscode.Uri) {
-		this._config = config;
-		this._uri = uri;
-
-		let fileExtension = path.extname(uri.fsPath);
-		this._watcher = new UriWatcher("**/*" + fileExtension, [uri], () => this._runSoon());
-		this._runTimeout = null;
+	constructor(pattern:string, command:string) {
+		this._pattern = pattern;
+		this._command = command;
+		this._watcher = null;
 	}
 
-	private _runSoon(): void {
-		if (this._runTimeout) {
+	public dispose(): void {
+		if (this._watcher) {
+			log.info('Stopping from watching ' + this._pattern);
+			this._watcher.dispose();
+			this._watcher = null;
+		}
+	}
+
+	public enable(): void {
+		if (this._watcher) {
 			return;
 		}
-		this._runTimeout = setTimeout(() => {
-			this._runTimeout = null;
-			this._run();
-		}, 150);
+		log.info('Starting to watch ' + this._pattern);
+		this._watcher = vscode.workspace.createFileSystemWatcher(this._pattern, true, false, true);
+		this._watcher.onDidChange((uri) => this._run(uri));
 	}
 
-	private _run(): void {
+	public disable(): void {
+		if (!this._watcher) {
+			return;
+		}
+		log.info('Stopping from watching ' + this._pattern);
+		this._watcher.dispose();
+		this._watcher = null;
+	}
+
+	private _run(uri:vscode.Uri): void {
 		let workspaceRoot = vscode.workspace.rootPath;
-		let file = vscode.workspace.asRelativePath(this._uri);
+		let file = vscode.workspace.asRelativePath(uri);
 		let hadError = false;
 
-		let command = this._config.watcherExec.replace(/\${([^}]+)}/g, (_, expr) => {
+		let command = this._command.replace(/\${([^}]+)}/g, (_, expr) => {
 			let sourceCode = `(function(workspaceRoot, file, path) { return ${expr}; })`;
 			try {
 				let func = <any>vm.runInThisContext(sourceCode);
@@ -71,13 +80,5 @@ export class SourceFileWatcher {
 				return;
 			}
 		});
-	}
-
-	public dispose(): void {
-		this._watcher.dispose();
-		if (this._runTimeout) {
-			clearTimeout(this._runTimeout);
-			this._runTimeout = null;
-		}
 	}
 }

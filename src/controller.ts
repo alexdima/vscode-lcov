@@ -29,7 +29,8 @@ export class Controller {
 	private _config: Configuration;
 	private _toDispose: vscode.Disposable[];
 
-	private _sourceFileWatcher:SourceFileWatcher;
+	private _watchers:SourceFileWatcher[];
+	private _watchersEnabled:boolean;
 	private _dataBank: DataBank;
 	private _editorDecorator: EditorDecorator;
 
@@ -38,7 +39,11 @@ export class Controller {
 		this._config = config;
 		this._toDispose = [];
 
-		this._sourceFileWatcher = null;
+		this._watchers = config.watchConf.map((watchConf) => {
+			return new SourceFileWatcher(watchConf.pattern, watchConf.command);
+		});
+		this._toDispose = this._toDispose.concat(this._watchers);
+		this._watchersEnabled = false;
 
 		this._dataBank = new DataBank(this._config);
 		this._toDispose.push(this._dataBank);
@@ -51,17 +56,9 @@ export class Controller {
 
 	public dispose(): void {
 		log.info('Disposing controller.');
-		this._stopSourceFileWatcher();
 
 		vscode.Disposable.from(...this._toDispose).dispose();
 		this._toDispose = [];
-	}
-
-	private _stopSourceFileWatcher(): void {
-		if (this._sourceFileWatcher) {
-			this._sourceFileWatcher.dispose();
-			this._sourceFileWatcher = null;
-		}
 	}
 
 	public showMenu(): void {
@@ -76,19 +73,21 @@ export class Controller {
 			));
 		}
 
-		if (!this._sourceFileWatcher) {
-			let uri = vscode.window.activeTextEditor.document.uri;
+		if (this._watchersEnabled) {
 			menu.push(new QuickPickItem(
-				'Begin watching ' + vscode.workspace.asRelativePath(uri),
+				'Disable watchers',
 				() => {
-					this._stopSourceFileWatcher();
-					this._sourceFileWatcher = new SourceFileWatcher(this._config, uri);
+					this._watchersEnabled = false;
+					this._watchers.forEach((w) => w.disable());
 				}
 			));
-		} else {
+		} else if (this._watchers.length > 0) {
 			menu.push(new QuickPickItem(
-				'Stop watching ' + vscode.workspace.asRelativePath(this._sourceFileWatcher.uri),
-				() => this._stopSourceFileWatcher()
+				'Enable watchers',
+				() => {
+					this._watchersEnabled = true;
+					this._watchers.forEach((w) => w.enable());
+				}
 			));
 		}
 
