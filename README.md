@@ -1,4 +1,4 @@
-# vscode-lcov README
+# VSCode LCOV
 
 This is the README for your extension "vscode-lcov". After writing up a brief description, we recommend including the following sections.
 

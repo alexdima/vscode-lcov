@@ -1,8 +1,8 @@
 {
   "name": "vscode-lcov",
-  "displayName": "vscode-lcov",
-  "description": "Renders test coverage",
-  "version": "0.0.1",
+  "displayName": "VSCode LCOV",
+  "description": "Renders line and branch coverage",
+  "version": "0.0.2",
   "publisher": "alexdima",
   "engines": {
     "vscode": "^1.4.0"
@@ -45,44 +45,45 @@
           "items": {
             "type": "object",
             "properties": {
-              "pattern": { "type": "string" },
-              "command": { "type": "string" },
+              "pattern": {
+                "type": "string"
+              },
+              "command": {
+                "type": "string"
+              },
               "osx": {
                 "properties": {
-                  "pattern": { "type": "string" },
-                  "command": { "type": "string" }
+                  "pattern": {
+                    "type": "string"
+                  },
+                  "command": {
+                    "type": "string"
+                  }
                 }
               },
               "windows": {
                 "properties": {
-                  "pattern": { "type": "string" },
-                  "command": { "type": "string" }
+                  "pattern": {
+                    "type": "string"
+                  },
+                  "command": {
+                    "type": "string"
+                  }
                 }
               },
               "linux": {
                 "properties": {
-                  "pattern": { "type": "string" },
-                  "command": { "type": "string" }
+                  "pattern": {
+                    "type": "string"
+                  },
+                  "command": {
+                    "type": "string"
+                  }
                 }
               }
             }
           },
           "default": []
-        },
-        "lcov.watcherExec.osx": {
-          "type": "string",
-          "default": null,
-          "description": "Execute when a source file is watcher. e.g. scripts\test --run ${file.replace(/src/,'/out/') + path.extname(file)}. Bound variables: workspaceRoot, file, path (node's path)"
-        },
-        "lcov.watcherExec.windows": {
-          "type": "string",
-          "default": null,
-          "description": "Execute when a source file is watcher. e.g. scripts\test --run ${file.replace(/src/,'/out/') + path.extname(file)}. Bound variables: workspaceRoot, file, path (node's path)"
-        },
-        "lcov.watcherExec.linux": {
-          "type": "string",
-          "default": null,
-          "description": "Execute when a source file is watcher. e.g. scripts\test --run ${file.replace(/src/,'/out/') + path.extname(file)}. Bound variables: workspaceRoot, file, path (node's path)"
         }
       }
     },
@@ -106,6 +107,7 @@
   },
   "devDependencies": {
     "typescript": "^1.8.5",
+    "vsce": "^1.8.1",
     "vscode": "^0.11.0"
   },
   "dependencies": {

@@ -3,7 +3,6 @@
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 var parse = require('lcov-parse');
-var lcovSourcemap = require('lcov-sourcemap');
 
 import {LOG} from './logger';
 import {toPromiseFunc} from './utils';
