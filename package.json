@@ -2,7 +2,7 @@
   "name": "vscode-lcov",
   "displayName": "VSCode LCOV",
   "description": "Renders line and branch coverage",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "publisher": "alexdima",
   "engines": {
     "vscode": "^1.4.0"
@@ -96,7 +96,8 @@
     "keybindings": [
       {
         "key": "ctrl+t",
-        "command": "lcov.menu"
+        "command": "lcov.menu",
+        "mac": "cmd+t"
       }
     ]
   },

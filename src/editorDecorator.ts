@@ -141,6 +141,11 @@ function computeBranchCoverageDecorations(document:vscode.TextDocument, branches
 
 	let branchesMap:{[line:string]:boolean[][]} = {};
 
+	let pushGroup = (group:IRawBranchCoverageDetail[]) => {
+		let strLineNumber = String(group[0].line);
+		branchesMap[strLineNumber] = branchesMap[strLineNumber] || [];
+		branchesMap[strLineNumber].push(group.map(b => b.taken > 0));
+	};
 	let group:IRawBranchCoverageDetail[] = [];
 	group.push(branches[0]);
 	for (let i = 1; i < branches.length; i++) {
@@ -150,14 +155,11 @@ function computeBranchCoverageDecorations(document:vscode.TextDocument, branches
 		if (current.block === prev.block) {
 			group.push(current);
 		} else {
-			let processBatch = group;
+			pushGroup(group);
 			group = [current];
-
-			let strLineNumber = String(processBatch[0].line);
-			branchesMap[strLineNumber] = branchesMap[strLineNumber] || [];
-			branchesMap[strLineNumber].push(processBatch.map(b => b.taken > 0));
 		}
 	}
+	pushGroup(group);
 
 	let covered:vscode.DecorationOptions[] = [];
 	let missed:vscode.DecorationOptions[] = [];
