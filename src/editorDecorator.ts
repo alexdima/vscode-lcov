@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 import {DataBank} from './dataBank';
 import {Configuration} from './configuration';
 import {ICoverageData, IRawLineCoverageDetail, IRawBranchCoverageDetail} from './loader';
+import {Enablement} from './enablement';
 
 export class EditorDecorator {
 
@@ -17,6 +18,7 @@ export class EditorDecorator {
 	private _missedBranchDecType: vscode.TextEditorDecorationType;
 	private _partialBranchDecType: vscode.TextEditorDecorationType;
 	private _listener: vscode.Disposable;
+	private _enablementListener: vscode.Disposable;
 
 	constructor(config: Configuration, dataBank: DataBank) {
 		this._config = config;
@@ -68,6 +70,7 @@ export class EditorDecorator {
 
 		// watcher to update decorations
 		this._listener = vscode.window.onDidChangeActiveTextEditor(() => this._updateEditors());
+		this._enablementListener = Enablement.onDidChange(() => this._updateEditors());
 	}
 
 	public dispose(): void {
@@ -77,6 +80,7 @@ export class EditorDecorator {
 		this._missedBranchDecType.dispose();
 		this._partialBranchDecType.dispose();
 		this._listener.dispose();
+		this._enablementListener.dispose();
 	}
 
 	private _updateEditors(): void {
@@ -90,14 +94,22 @@ export class EditorDecorator {
 	}
 
 	private _updateEditor(editor:vscode.TextEditor, data: ICoverageData): void {
-		let lineCov = computeLineCoverageDecorations(data.lines.details);
-		editor.setDecorations(this._coveredLineDecType, lineCov.covered);
-		editor.setDecorations(this._missedLineDecType, lineCov.missed);
+		if (Enablement.value()) {
+			let lineCov = computeLineCoverageDecorations(data.lines.details);
+			editor.setDecorations(this._coveredLineDecType, lineCov.covered);
+			editor.setDecorations(this._missedLineDecType, lineCov.missed);
 
-		let branchCov = computeBranchCoverageDecorations(editor.document, data.branches.details);
-		editor.setDecorations(this._coveredBranchDecType, branchCov.covered);
-		editor.setDecorations(this._missedBranchDecType, branchCov.missed);
-		editor.setDecorations(this._partialBranchDecType, branchCov.partial);
+			let branchCov = computeBranchCoverageDecorations(editor.document, data.branches.details);
+			editor.setDecorations(this._coveredBranchDecType, branchCov.covered);
+			editor.setDecorations(this._missedBranchDecType, branchCov.missed);
+			editor.setDecorations(this._partialBranchDecType, branchCov.partial);
+		} else {
+			editor.setDecorations(this._coveredLineDecType, []);
+			editor.setDecorations(this._missedLineDecType, []);
+			editor.setDecorations(this._coveredBranchDecType, []);
+			editor.setDecorations(this._missedBranchDecType, []);
+			editor.setDecorations(this._partialBranchDecType, []);
+		}
 	}
 }
 

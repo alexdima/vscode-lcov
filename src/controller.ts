@@ -8,6 +8,7 @@ import {DataBank} from './dataBank';
 import {CoverageReportProvider} from './coverageReportProvider';
 import {SourceFileWatcher} from './sourceFileWatcher';
 import {EditorDecorator} from './editorDecorator';
+import {Enablement} from './enablement';
 
 const log = LOG('Controller');
 
@@ -64,10 +65,27 @@ export class Controller {
 	public showMenu(): void {
 		let menu: QuickPickItem[] = [];
 
+		if (Enablement.value() === false) {
+			menu.push(new QuickPickItem(
+				'Enable decorations',
+				() => {
+					Enablement.enable();
+				}
+			));
+		} else {
+			menu.push(new QuickPickItem(
+				'Disable decorations',
+				() => {
+					Enablement.disable();
+				}
+			));
+		}
+
 		if (!this._dataBank.isEmpty()) {
 			menu.push(new QuickPickItem(
 				'Show Coverage Report',
 				() => {
+					Enablement.enable();
 					vscode.commands.executeCommand('vscode.previewHtml', CoverageReportProvider.COVERAGE_REPORT_URI, vscode.ViewColumn.Two, 'LCOV Coverage Report');
 				}
 			));
@@ -85,6 +103,7 @@ export class Controller {
 			menu.push(new QuickPickItem(
 				'Enable watchers',
 				() => {
+					Enablement.enable();
 					this._watchersEnabled = true;
 					this._watchers.forEach((w) => w.enable());
 				}

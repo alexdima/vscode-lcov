@@ -97,10 +97,12 @@ export class DataBank {
 	private static _merge(results:ILoadResult[]): IData {
 		let accumulated:IData = Object.create(null);
 		results.forEach((result) => {
-			result.data.forEach((fileData) => {
-				log.debug('Received coverage data for ' + fileData.uri.fsPath);
-				accumulated[fileData.uri.toString()] = fileData;
-			});
+			if (result.data) {
+				result.data.forEach((fileData) => {
+					log.debug('Received coverage data for ' + fileData.uri.fsPath);
+					accumulated[fileData.uri.toString()] = fileData;
+				});
+			}
 		});
 		return accumulated;
 	}

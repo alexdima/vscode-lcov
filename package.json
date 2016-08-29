@@ -2,7 +2,7 @@
   "name": "vscode-lcov",
   "displayName": "VSCode LCOV",
   "description": "Renders line and branch coverage",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "publisher": "alexdima",
   "engines": {
     "vscode": "^1.4.0"
