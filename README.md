@@ -83,7 +83,13 @@ exports.example = function (a, b) {
 }
 ```
 
-|  Test Code                                     | if taken | else taken | a evaluated | b evaluated |  "simple" | "full" |
+For the table columns:
+* IF = if taken
+* ELSE = else taken
+* A? = a evaluated
+* B? = b evaluated
+
+|  Test Code                                     | IF | ELSE | A? | B? |  "simple" | "full" |
 |------------------------------------------------|:--------:|:----------:|:-----------:|:-----------:|-----------|--------|
 | `//no calls`                                   |   **∅**  |    **∅**   |    **∅**    |    **∅**    | ![image](https://cloud.githubusercontent.com/assets/5047891/18351364/29261450-75da-11e6-8483-11c34b4d0212.png) | ![image](https://cloud.githubusercontent.com/assets/5047891/18349139/f1d6c5d0-75cf-11e6-879b-f561bdd3d44a.png) |
 | `example(0,0)`                                 |   **∅**  |    **✓**   |    **✓**    |    **∅**    | ![image](https://cloud.githubusercontent.com/assets/5047891/18351448/80d88048-75da-11e6-90c0-b4d96a029f0e.png) | ![image](https://cloud.githubusercontent.com/assets/5047891/18349161/162373e8-75d0-11e6-868a-bc2c3a9f0bf4.png) |
@@ -111,7 +117,14 @@ exports.example = function (a, b, c) {
 }
 ```
 
-|  Test Code                                     | if taken | else taken | a evaluated | b evaluated | c evaluated |  Output |
+For the table columns:
+* IF = if taken
+* ELSE = else taken
+* A? = a evaluated
+* B? = b evaluated
+* C? = c evaluated
+
+|  Test Code                                     | IF | ELSE | A? | B? | C? |  Output |
 |------------------------------------------------|:--------:|:----------:|:-----------:|:-----------:|:-----------:|---------|
 | `//no calls`                                   |   **∅**  |    **∅**   |    **∅**    |    **∅**    |    **∅**    | ![image](https://cloud.githubusercontent.com/assets/5047891/18350180/0794aae0-75d5-11e6-8d70-f06642253e73.png) |
 | `example(0,0,0)`                               |   **∅**  |    **✓**   |    **✓**    |    **∅**    |    **∅**    | ![image](https://cloud.githubusercontent.com/assets/5047891/18350238/4c59e532-75d5-11e6-9611-cdc10037c1e6.png) |
