@@ -48,6 +48,12 @@ Renders Line and Branch coverage from `lcov.info` files interactively.
 
 ---
 
+## Branch coverage: Configuration
+
+```json
+"lcov.branchCoverage": "off" or "simple" (default) or "full"
+```
+
 ## Branch coverage: A single boolean expression
 
 ```js
