@@ -28,13 +28,13 @@ export class EditorDecorator {
 
 		// decoration type for covered lines
 		this._coveredLineDecType = vscode.window.createTextEditorDecorationType({
-			backgroundColor: 'rgba(208,233,153,0.1)',
+			backgroundColor: 'rgba(208,233,153,0.4)',
 			isWholeLine: true
 		});
 
 		// decoration type for missed lines
 		this._missedLineDecType = vscode.window.createTextEditorDecorationType({
-			backgroundColor: 'rgba(216,134,123,0.1)',
+			backgroundColor: 'rgba(216,134,123,0.4)',
 			isWholeLine: true,
 			overviewRulerColor: 'rgba(216,134,123,0.8)',
 			overviewRulerLane: vscode.OverviewRulerLane.Left

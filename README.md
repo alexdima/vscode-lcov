@@ -124,7 +124,7 @@ For the table columns:
 * B? = b evaluated
 * C? = c evaluated
 
-|  Test Code                                     | IF | ELSE | A? | B? | C? |  Output |
+|  Test Code                                     | IF | ELSE | A? | B? | C? |  "full" |
 |------------------------------------------------|:--------:|:----------:|:-----------:|:-----------:|:-----------:|---------|
 | `//no calls`                                   |   **∅**  |    **∅**   |    **∅**    |    **∅**    |    **∅**    | ![image](https://cloud.githubusercontent.com/assets/5047891/18350180/0794aae0-75d5-11e6-8d70-f06642253e73.png) |
 | `example(0,0,0)`                               |   **∅**  |    **✓**   |    **✓**    |    **∅**    |    **∅**    | ![image](https://cloud.githubusercontent.com/assets/5047891/18350238/4c59e532-75d5-11e6-9611-cdc10037c1e6.png) |
