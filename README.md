@@ -60,12 +60,12 @@ exports.example = function (a) {
 
 The above source code contains a single branch block consisting of two branches.
 
-|  Test Code               |  Output |
-|--------------------------|---------|
-| `//no calls`             | ![image](https://cloud.githubusercontent.com/assets/5047891/18345523/308ccea0-75bc-11e6-8d2c-f15cd8c8796c.png) |
-| `example(1)`             | ![image](https://cloud.githubusercontent.com/assets/5047891/18346801/942d4d94-75c2-11e6-9925-1349ccffc2bb.png) |
-| `example(0)`             | ![image](https://cloud.githubusercontent.com/assets/5047891/18346828/b20a862e-75c2-11e6-9404-b16cc955b150.png) |
-| `example(0), example(1)` | ![image](https://cloud.githubusercontent.com/assets/5047891/18346867/d86d2394-75c2-11e6-8c76-ea6de4c57644.png) |
+|  Test Code               | if taken | else taken |  Output |
+|--------------------------|:--------:|:----------:|---------|
+| `//no calls`             |   **∅**  |    **∅**   | ![image](https://cloud.githubusercontent.com/assets/5047891/18345523/308ccea0-75bc-11e6-8d2c-f15cd8c8796c.png) |
+| `example(1)`             |   **✓**  |    **∅**   | ![image](https://cloud.githubusercontent.com/assets/5047891/18346801/942d4d94-75c2-11e6-9925-1349ccffc2bb.png) |
+| `example(0)`             |   **∅**  |    **✓**   | ![image](https://cloud.githubusercontent.com/assets/5047891/18346828/b20a862e-75c2-11e6-9404-b16cc955b150.png) |
+| `example(0), example(1)` |   **✓**  |    **✓**   | ![image](https://cloud.githubusercontent.com/assets/5047891/18346867/d86d2394-75c2-11e6-8c76-ea6de4c57644.png) |
 
 ## Branch coverage: A binary boolean expression
 
@@ -96,6 +96,15 @@ exports.example = function (a, b) {
 | `example(0,1)`, `example(1,0)`, `example(1,1)` |   **✓**  |    **✓**   |    **✓**    |    **✓**    | ![image](https://cloud.githubusercontent.com/assets/5047891/18349673/b2d450fc-75d2-11e6-8652-81a3f3ce5e26.png) |
 
 ## Branch coverage: A ternary boolean expression
+
+```js
+exports.example = function (a, b, c) {
+	if (a && b && c) {
+		console.log('1');
+	}
+}
+```
+
 |  Test Code                                     | if taken | else taken | a evaluated | b evaluated | c evaluated |  Output |
 |------------------------------------------------|:--------:|:----------:|:-----------:|:-----------:|:-----------:|---------|
 | `//no calls`                                   |   **∅**  |    **∅**   |    **∅**    |    **∅**    |    **∅**    | ![image](https://cloud.githubusercontent.com/assets/5047891/18350180/0794aae0-75d5-11e6-8d70-f06642253e73.png) |
