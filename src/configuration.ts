@@ -19,10 +19,17 @@ export interface IWatchData {
 	command: string;
 }
 
+export enum BranchCoverage {
+	Off = 0,
+	Simple = 1,
+	Full = 2
+};
+
 export class Configuration {
 
 	private _paths: vscode.Uri[];
 	private _sourceMaps: boolean;
+	private _branchCoverage: BranchCoverage;
 	private _watchConf: IWatchData[];
 
 	public get paths(): vscode.Uri[] {
@@ -31,6 +38,10 @@ export class Configuration {
 
 	public get sourceMaps(): boolean {
 		return this._sourceMaps;
+	}
+
+	public get branchCoverage(): BranchCoverage {
+		return this._branchCoverage;
 	}
 
 	public get watchConf(): IWatchData[] {
@@ -51,6 +62,14 @@ export class Configuration {
 		this._paths = paths.map(p => vscode.Uri.file(path.join(vscode.workspace.rootPath, p)));
 
 		this._sourceMaps = Boolean(conf['sourceMaps']);
+
+		if (conf['branchCoverage'] === 'full') {
+			this._branchCoverage = BranchCoverage.Full;
+		} else if (conf['branchCoverage'] === 'simple') {
+			this._branchCoverage = BranchCoverage.Simple;
+		} else {
+			this._branchCoverage = BranchCoverage.Off;
+		}
 
 		this._watchConf = conf['watch'].map((watchConf:IRawWatchData) => {
 			let osOverride:IRawOSWatchData = null;

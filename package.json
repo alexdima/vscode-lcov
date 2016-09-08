@@ -36,6 +36,12 @@
           "default": "coverage/lcov.info",
           "description": "Path to lcov file"
         },
+        "lcov.branchCoverage": {
+          "type": "string",
+          "enum": ["full", "simple", "off"],
+          "default": "simple",
+          "description": "Render Branch Coverage"
+        },
         "lcov.sourceMaps": {
           "type": "boolean",
           "default": false,

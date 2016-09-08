@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 
 import {DataBank} from './dataBank';
-import {Configuration} from './configuration';
+import {BranchCoverage, Configuration} from './configuration';
 import {ICoverageData, IRawLineCoverageDetail, IRawBranchCoverageDetail} from './loader';
 import {Enablement} from './enablement';
 
@@ -99,7 +99,7 @@ export class EditorDecorator {
 			editor.setDecorations(this._coveredLineDecType, lineCov.covered);
 			editor.setDecorations(this._missedLineDecType, lineCov.missed);
 
-			let branchCov = computeBranchCoverageDecorations(editor.document, data.branches.details);
+			let branchCov = computeBranchCoverageDecorations(this._config.branchCoverage, editor.document, data.branches.details);
 			editor.setDecorations(this._coveredBranchDecType, branchCov.covered);
 			editor.setDecorations(this._missedBranchDecType, branchCov.missed);
 			editor.setDecorations(this._partialBranchDecType, branchCov.partial);
@@ -142,8 +142,8 @@ interface IBranchCoverageDecorations {
 	partial:vscode.DecorationOptions[];
 }
 
-function computeBranchCoverageDecorations(document:vscode.TextDocument, branches:IRawBranchCoverageDetail[]): IBranchCoverageDecorations {
-	if (!branches || branches.length === 0) {
+function computeBranchCoverageDecorations(branchCoverage: BranchCoverage, document:vscode.TextDocument, branches:IRawBranchCoverageDetail[]): IBranchCoverageDecorations {
+	if (!branches || branches.length === 0 || branchCoverage === BranchCoverage.Off) {
 		return {
 			covered: [],
 			missed: [],
@@ -177,6 +177,18 @@ function computeBranchCoverageDecorations(document:vscode.TextDocument, branches
 	let missed:vscode.DecorationOptions[] = [];
 	let partial:vscode.DecorationOptions[] = [];
 
+	let pushResult = (dest:vscode.DecorationOptions[], lineNumber:number, text:string) => {
+		let line = document.lineAt(lineNumber - 1);
+		dest.push({
+			range: new vscode.Range(line.lineNumber, line.firstNonWhitespaceCharacterIndex, line.lineNumber, line.firstNonWhitespaceCharacterIndex),
+			renderOptions: {
+				before: {
+					contentText: text
+				}
+			}
+		});
+	}
+
 	Object.keys(branchesMap).forEach((strLineNumber) => {
 		let branchesAtLine = branchesMap[strLineNumber];
 		let lineNumber = parseInt(strLineNumber, 10);
@@ -184,6 +196,31 @@ function computeBranchCoverageDecorations(document:vscode.TextDocument, branches
 		let pieces:string[] = [];
 		let totalCnt = 0;
 		let takenCnt = 0;
+
+		if (branchCoverage === BranchCoverage.Simple) {
+			if (branchesAtLine.length > 1) {
+				branchesAtLine = branchesAtLine.slice(0, 1);
+			}
+			if (branchesAtLine[0].length !== 2) {
+				return;
+			}
+			let ifBranchTaken = branchesAtLine[0][0];
+			let elseBranchTaken = branchesAtLine[0][1];
+
+			if (ifBranchTaken && elseBranchTaken) {
+				pushResult(covered, lineNumber, '✓');
+			}
+			if (ifBranchTaken && !elseBranchTaken) {
+				pushResult(partial, lineNumber, ' E ');
+			}
+			if (!ifBranchTaken && elseBranchTaken) {
+				pushResult(partial, lineNumber, ' I ');
+			}
+			if (!ifBranchTaken && !elseBranchTaken) {
+				pushResult(missed, lineNumber, '∅');
+			}
+			return;
+		}
 
 		for (let i = 0; i < branchesAtLine.length; i++) {
 			let branch = branchesAtLine[i];
@@ -223,15 +260,7 @@ function computeBranchCoverageDecorations(document:vscode.TextDocument, branches
 			}
 		}
 
-		let line = document.lineAt(lineNumber - 1);
-		dest.push({
-			range: new vscode.Range(line.lineNumber, line.firstNonWhitespaceCharacterIndex, line.lineNumber, line.firstNonWhitespaceCharacterIndex),
-			renderOptions: {
-				before: {
-					contentText: pieces.join('—')
-				}
-			}
-		});
+		pushResult(dest, lineNumber, pieces.join('—'));
 	});
 
 	return {
