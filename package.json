@@ -2,7 +2,7 @@
   "name": "vscode-lcov",
   "displayName": "VSCode LCOV",
   "description": "Renders line and branch coverage",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "publisher": "alexdima",
   "engines": {
     "vscode": "^1.4.0"
@@ -38,7 +38,11 @@
         },
         "lcov.branchCoverage": {
           "type": "string",
-          "enum": ["full", "simple", "off"],
+          "enum": [
+            "full",
+            "simple",
+            "off"
+          ],
           "default": "simple",
           "description": "Render Branch Coverage"
         },
