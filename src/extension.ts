@@ -17,6 +17,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 	log.info('Starting up...');
 
+	if (!vscode.workspace.rootPath) {
+		log.info('This extension does not work unless you open a folder.');
+		log.info('Shutting down...');
+		vscode.commands.registerCommand('lcov.menu', () => {
+			vscode.window.showWarningMessage('LCOV only works if you open a folder.');
+		});
+		return;
+	}
+
 	CoverageReportProvider.init(context);
 
 	let config: Configuration = null;
