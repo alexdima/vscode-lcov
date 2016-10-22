@@ -103,13 +103,6 @@
         "command": "lcov.menu",
         "title": "LCOV Menu"
       }
-    ],
-    "keybindings": [
-      {
-        "key": "ctrl+t",
-        "command": "lcov.menu",
-        "mac": "cmd+t"
-      }
     ]
   },
   "scripts": {
