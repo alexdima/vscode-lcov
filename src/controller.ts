@@ -2,24 +2,25 @@
 
 import * as vscode from 'vscode';
 
-import {LOG} from './logger';
-import {Configuration} from './configuration';
-import {DataBank} from './dataBank';
-import {CoverageReportProvider} from './coverageReportProvider';
-import {SourceFileWatcher} from './sourceFileWatcher';
-import {EditorDecorator} from './editorDecorator';
-import {Enablement} from './enablement';
+import { LOG } from './logger';
+import { Configuration } from './configuration';
+import { DataBank } from './dataBank';
+import { CoverageReportProvider } from './coverageReportProvider';
+import { SourceFileWatcher } from './sourceFileWatcher';
+import { EditorDecorator } from './editorDecorator';
+import { Enablement } from './enablement';
+import { StatusIndicator } from './statusIndicator';
 
 const log = LOG('Controller');
 
 class QuickPickItem implements vscode.QuickPickItem {
 
-	public label:string;
-	public description:string;
+	public label: string;
+	public description: string;
 
-	public run:()=>void;
+	public run: () => void;
 
-	constructor(label:string, run:()=>void) {
+	constructor(label: string, run: () => void) {
 		this.label = label;
 		this.description = '';
 		this.run = run;
@@ -30,8 +31,8 @@ export class Controller {
 	private _config: Configuration;
 	private _toDispose: vscode.Disposable[];
 
-	private _watchers:SourceFileWatcher[];
-	private _watchersEnabled:boolean;
+	private _watchers: SourceFileWatcher[];
+	private _watchersEnabled: boolean;
 	private _dataBank: DataBank;
 	private _editorDecorator: EditorDecorator;
 
@@ -53,6 +54,10 @@ export class Controller {
 		this._toDispose.push(this._editorDecorator);
 
 		this._toDispose.push(vscode.workspace.registerTextDocumentContentProvider(CoverageReportProvider.SCHEME, new CoverageReportProvider(this._dataBank)));
+
+		this._toDispose.push(new StatusIndicator(this._dataBank));
+		this._toDispose.push(vscode.commands.registerCommand('lcov.displayCoverageEditorDecorator', () => this.toggleCoverageDecorator()));
+
 	}
 
 	public dispose(): void {
@@ -115,5 +120,13 @@ export class Controller {
 				selected.run();
 			}
 		});
+	}
+
+	private toggleCoverageDecorator() {
+		if (Enablement.value()) {
+			Enablement.disable()
+		} else {
+			Enablement.enable();
+		}
 	}
 }

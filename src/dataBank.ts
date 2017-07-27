@@ -4,11 +4,11 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import {Configuration} from './configuration';
-import {ICoverageData, IRawLinesCoverageData, IRawFunctionsCoverageData, IRawBranchesCoverageData, ILoadResult, loadMany} from './loader';
-import {LOG} from './logger';
-import {UriWatcher} from './uriWatcher';
-import {ISourceMapConsumers, ISourceMapConsumer, IOriginalPosition, getSource, getSourceMapConsumers} from './sourceMapFinder';
+import { Configuration } from './configuration';
+import { ICoverageData, IRawLinesCoverageData, IRawFunctionsCoverageData, IRawBranchesCoverageData, ILoadResult, loadMany } from './loader';
+import { LOG } from './logger';
+import { UriWatcher } from './uriWatcher';
+import { ISourceMapConsumers, ISourceMapConsumer, IOriginalPosition, getSource, getSourceMapConsumers } from './sourceMapFinder';
 
 const log = LOG('DataBank');
 
@@ -25,7 +25,7 @@ export interface ISummary {
 }
 
 interface IData {
-	[uri:string]: ICoverageData;
+	[uri: string]: ICoverageData;
 }
 
 export class DataBank {
@@ -33,11 +33,14 @@ export class DataBank {
 	private _onDidChange = new vscode.EventEmitter<void>();
 	public onDidChange = this._onDidChange.event;
 
-	private _config:Configuration;
-	private _data: {[uri:string]:ICoverageData};
+	private _config: Configuration;
+	private _data: { [uri: string]: ICoverageData };
 	private _watcher: UriWatcher;
 
-	constructor(config:Configuration) {
+	private _onProcessingEmitter = new vscode.EventEmitter<boolean>();
+	public onProcessingChange = this._onProcessingEmitter.event;
+
+	constructor(config: Configuration) {
 		this._config = config;
 		this._data = Object.create(null);
 
@@ -67,7 +70,7 @@ export class DataBank {
 		});
 	}
 
-	public get(uri:vscode.Uri): ICoverageData {
+	public get(uri: vscode.Uri): ICoverageData {
 		return this._data[uri.toString()] || null;
 	}
 
@@ -75,10 +78,21 @@ export class DataBank {
 		return (Object.keys(this._data).length === 0);
 	}
 
+	private _isProcessing = false;
+	get isProcessing() {
+		return this._isProcessing;
+	}
+	set isProcessing(value: boolean) {
+		this._isProcessing = value;
+		this._onProcessingEmitter.fire(value);
+	}
+
 	private _updateData(): void {
+		this.isProcessing = true;
 		loadMany(this._config.paths).then((results) => {
 
 			let accumulated = DataBank._merge(results);
+
 			if (!this._config.sourceMaps) {
 				return accumulated;
 			}
@@ -89,13 +103,15 @@ export class DataBank {
 		}).then((data) => {
 			this._data = data;
 			this._onDidChange.fire(void 0);
+			this.isProcessing = false;
 		}).then(null, (err) => {
 			log.error(err);
+			this.isProcessing = false;
 		});
 	}
 
-	private static _merge(results:ILoadResult[]): IData {
-		let accumulated:IData = Object.create(null);
+	private static _merge(results: ILoadResult[]): IData {
+		let accumulated: IData = Object.create(null);
 		results.forEach((result) => {
 			if (result.data) {
 				result.data.forEach((fileData) => {
@@ -108,7 +124,7 @@ export class DataBank {
 	}
 }
 
-function forEach<T extends { line: number;}>(arr:T[], sourcemap, callback:(item:T, source:IOriginalPosition)=>void): void {
+function forEach<T extends { line: number; }>(arr: T[], sourcemap, callback: (item: T, source: IOriginalPosition) => void): void {
 	arr.forEach((item) => {
 		let source = getSource(sourcemap, item.line);
 		if (!source || !source.source) {
@@ -118,7 +134,7 @@ function forEach<T extends { line: number;}>(arr:T[], sourcemap, callback:(item:
 	});
 }
 
-function processSourceMaps(data:IData, sourcemaps:ISourceMapConsumers): IData {
+function processSourceMaps(data: IData, sourcemaps: ISourceMapConsumers): IData {
 	let collector = new CoverageCollector();
 
 	Object.keys(data).forEach((key) => {
@@ -165,7 +181,7 @@ class File implements ICoverageData {
 	functions: IRawFunctionsCoverageData;
 	branches: IRawBranchesCoverageData;
 
-	constructor(uri:vscode.Uri) {
+	constructor(uri: vscode.Uri) {
 		log.debug('Received mapped coverage data for ' + uri.fsPath);
 		this.uri = uri;
 		this.title = '';
@@ -186,7 +202,7 @@ class File implements ICoverageData {
 		};
 	}
 
-	addLine(data:{line:number;hit:number;}): void {
+	addLine(data: { line: number; hit: number; }): void {
 		this.lines.found++;
 		if (data.hit > 0) {
 			this.lines.hit++;
@@ -194,7 +210,7 @@ class File implements ICoverageData {
 		this.lines.details.push(data);
 	}
 
-	addFunction(data:{line:number;hit:number;name:string;}): void {
+	addFunction(data: { line: number; hit: number; name: string; }): void {
 		this.functions.found++;
 		if (data.hit > 0) {
 			this.functions.hit++;
@@ -202,7 +218,7 @@ class File implements ICoverageData {
 		this.functions.details.push(data);
 	}
 
-	addBranches(data:{line:number;block:number;branch:number;taken:number;}): void {
+	addBranches(data: { line: number; block: number; branch: number; taken: number; }): void {
 		this.branches.found++;
 		if (data.taken > 0) {
 			this.branches.hit++;
@@ -213,7 +229,7 @@ class File implements ICoverageData {
 
 class CoverageCollector {
 
-	private _files: {[uri:string]:File;};
+	private _files: { [uri: string]: File; };
 
 	constructor() {
 		this._files = Object.create(null);
@@ -231,20 +247,20 @@ class CoverageCollector {
 		return this._files[key];
 	}
 
-	private _getOrCreateFrom(generatedUri:vscode.Uri, source:string): File {
+	private _getOrCreateFrom(generatedUri: vscode.Uri, source: string): File {
 		let uri = vscode.Uri.file(path.join(path.dirname(generatedUri.fsPath), source));
 		return this._getOrCreate(uri);
 	}
 
-	addLine(generatedUri:vscode.Uri, source:string, data:{line:number;hit:number;}): void {
+	addLine(generatedUri: vscode.Uri, source: string, data: { line: number; hit: number; }): void {
 		this._getOrCreateFrom(generatedUri, source).addLine(data);
 	}
 
-	addFunction(generatedUri:vscode.Uri, source:string, data:{line:number;hit:number;name:string;}): void {
+	addFunction(generatedUri: vscode.Uri, source: string, data: { line: number; hit: number; name: string; }): void {
 		this._getOrCreateFrom(generatedUri, source).addFunction(data);
 	}
 
-	addBranches(generatedUri:vscode.Uri, source:string, data:{line:number;block:number;branch:number;taken:number;}): void {
+	addBranches(generatedUri: vscode.Uri, source: string, data: { line: number; block: number; branch: number; taken: number; }): void {
 		this._getOrCreateFrom(generatedUri, source).addBranches(data);
 	}
 }
