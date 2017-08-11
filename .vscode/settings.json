@@ -4,7 +4,7 @@
 	"editor.insertSpaces": false,
 	"editor.tabSize": 4,
 	"files.exclude": {
-		"out": true
+		"out": false
 	},
 	"files.trimTrailingWhitespace": true,
 	"search.exclude": {
