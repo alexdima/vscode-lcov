@@ -1,11 +1,15 @@
 {
   "name": "vscode-lcov",
   "displayName": "VSCode LCOV",
-  "description": "Renders line and branch coverage",
+  "description": "Renders line and branch test coverage",
   "version": "0.2.0",
   "publisher": "alexdima",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alexandrudima/vscode-lcov"
+  },
   "engines": {
-    "vscode": "^1.4.0"
+    "vscode": "^1.15.0"
   },
   "categories": [
     "Other"
@@ -106,14 +110,15 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
-    "compile": "node ./node_modules/vscode/bin/compile -watch -p ./",
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -watch -p ./",
     "postinstall": "node ./node_modules/vscode/bin/install"
   },
   "devDependencies": {
-    "typescript": "^1.8.5",
-    "vsce": "^1.8.1",
-    "vscode": "^0.11.0"
+    "@types/node": "^6.0.40",
+    "typescript": "^2.4.2",
+    "vsce": "^1.30.0",
+    "vscode": "^1.1.4"
   },
   "dependencies": {
     "lcov-parse": "0.0.10",
