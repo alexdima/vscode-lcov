@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 
-import {DataBank} from './dataBank';
+import { DataBank } from './dataBank';
 
 export class CoverageReportProvider implements vscode.TextDocumentContentProvider {
 
@@ -11,16 +11,16 @@ export class CoverageReportProvider implements vscode.TextDocumentContentProvide
 	public static COVERAGE_REPORT_URI = vscode.Uri.parse('lcov:coverage-report');
 
 	private static COVERAGE_REPORT_TEMPLATE: string;
-	public static init(ctx:vscode.ExtensionContext): void {
+	public static init(ctx: vscode.ExtensionContext): void {
 		this.COVERAGE_REPORT_TEMPLATE = fs.readFileSync(ctx.asAbsolutePath('./resources/coverage-report.html')).toString();
 	}
 
-	private _dataBank:DataBank;
+	private _dataBank: DataBank;
 
 	private _onDidChange = new vscode.EventEmitter<vscode.Uri>();
 	public onDidChange = this._onDidChange.event;
 
-	constructor(dataBank:DataBank) {
+	constructor(dataBank: DataBank) {
 		this._dataBank = dataBank;
 		this._dataBank.onDidChange(() => {
 			this._onDidChange.fire(CoverageReportProvider.COVERAGE_REPORT_URI);
@@ -37,7 +37,7 @@ export class CoverageReportProvider implements vscode.TextDocumentContentProvide
 
 		return (
 			CoverageReportProvider.COVERAGE_REPORT_TEMPLATE
-			.replace(/\/\*\$data\*\//, JSON.stringify(data))
+				.replace(/\/\*\$data\*\//, JSON.stringify(data))
 		);
 	}
 }

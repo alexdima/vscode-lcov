@@ -87,27 +87,28 @@ export class DataBank {
 		this._onProcessingEmitter.fire(value);
 	}
 
-	private _updateData(): void {
-		this.isProcessing = true;
-		loadMany(this._config.paths).then((results) => {
+	private async _updateData(): Promise<void> {
+		try {
+			this.isProcessing = true;
+			const results = await loadMany(this._config.paths);
+			const accumulated = DataBank._merge(results);
 
-			let accumulated = DataBank._merge(results);
+			let data: IData = null;
 
 			if (!this._config.sourceMaps) {
-				return accumulated;
+				data = accumulated;
+			} else {
+				const sourcemaps = await getSourceMapConsumers(Object.keys(accumulated).map(key => accumulated[key].uri));
+				data = processSourceMaps(accumulated, sourcemaps);
 			}
 
-			return getSourceMapConsumers(Object.keys(accumulated).map(key => accumulated[key].uri)).then((sourcemaps) => {
-				return processSourceMaps(accumulated, sourcemaps);
-			});
-		}).then((data) => {
 			this._data = data;
 			this._onDidChange.fire(void 0);
 			this.isProcessing = false;
-		}).then(null, (err) => {
+		} catch(err) {
 			log.error(err);
 			this.isProcessing = false;
-		});
+		}
 	}
 
 	private static _merge(results: ILoadResult[]): IData {

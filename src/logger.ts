@@ -27,22 +27,22 @@ const LOG_FILTER = LogLevel.Error | LogLevel.Warn | LogLevel.Info;// | LogLevel.
 
 let outputChannel: vscode.OutputChannel = null;
 
-export function initLog(context:vscode.ExtensionContext): void {
+export function initLog(context: vscode.ExtensionContext): void {
 	outputChannel = vscode.window.createOutputChannel('lcov');
 	context.subscriptions.push(outputChannel);
 }
 
 interface IWriteFunc {
-	(what:string): void;
+	(what: string): void;
 }
 
-function twoDigits(n:number): string {
+function twoDigits(n: number): string {
 	if (n < 10) {
 		return '0' + n;
 	}
 	return String(n);
 }
-function threeDigits(n:number): string {
+function threeDigits(n: number): string {
 	if (n < 10) {
 		return '00' + n;
 	}
@@ -61,22 +61,22 @@ function time(): string {
 	return `[${twoDigits(h)}:${twoDigits(m)}:${twoDigits(s)}.${threeDigits(ms)}]`
 }
 
-function bind(logLevel: LogLevel, prefix:string): IWriteFunc {
-	return (what:string) => {
+function bind(logLevel: LogLevel, prefix: string): IWriteFunc {
+	return (what: string) => {
 		if (logLevel & LOG_FILTER) {
 			outputChannel.appendLine(time() + LogLevel.asString(logLevel) + prefix + what);
 		}
 	}
 }
 
-function rpad(str:string, n:number): string {
+function rpad(str: string, n: number): string {
 	while (str.length < n) {
 		str = str + ' ';
 	}
 	return str;
 }
 
-export function LOG(prefix:string) {
+export function LOG(prefix: string) {
 	prefix = rpad(prefix, 20);
 	return {
 		error: bind(LogLevel.Error, '[' + prefix + ']: '),

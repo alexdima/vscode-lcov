@@ -67,7 +67,7 @@ export class Controller {
 		this._toDispose = [];
 	}
 
-	public showMenu(): void {
+	public async showMenu(): Promise<void> {
 		let menu: QuickPickItem[] = [];
 
 		if (Enablement.value() === false) {
@@ -115,11 +115,11 @@ export class Controller {
 			));
 		}
 
-		vscode.window.showQuickPick(menu).then((selected) => {
-			if (selected) {
-				selected.run();
-			}
-		});
+		let selected = await vscode.window.showQuickPick(menu);
+
+		if (selected) {
+			selected.run();
+		}
 	}
 
 	private toggleCoverageDecorator() {

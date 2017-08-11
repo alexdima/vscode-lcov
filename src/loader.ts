@@ -4,9 +4,9 @@ import * as fs from 'fs';
 import * as vscode from 'vscode';
 var parse = require('lcov-parse');
 
-import {LOG} from './logger';
-import {toPromiseFunc} from './utils';
-import {FileCache} from './fileCache';
+import { LOG } from './logger';
+import { toPromiseFunc } from './utils';
+import { FileCache } from './fileCache';
 
 const log = LOG('Loader');
 const pReadFile = toPromiseFunc(fs.readFile);
@@ -65,45 +65,45 @@ class LcovCache extends FileCache<ILoadResult> {
 
 	public static INSTANCE = new LcovCache();
 
-	public get(uri:vscode.Uri): Promise<ILoadResult> {
-		let fsPath = uri.fsPath;
+	public async get(uri: vscode.Uri): Promise<ILoadResult> {
+		const fsPath = uri.fsPath;
 
-		return super.get(uri).then(null, (err) => {
+		try {
+			return await super.get(uri);
+		} catch (err) {
 			log.error(err);
 			return {
 				filePath: fsPath,
 				data: null
 			};
-		});
+		}
 	}
 
-	protected _get(uri:vscode.Uri): Promise<ILoadResult> {
-		let fsPath = uri.fsPath;
+	protected async _get(uri: vscode.Uri): Promise<ILoadResult> {
+		const fsPath = uri.fsPath;
 
 		log.info('Reading ' + fsPath);
 
-		return pReadFile(fsPath).then((buf) => {
-			return pParse(buf.toString()).then((data: IRawCoverageData[]) => {
+		const buf = await pReadFile(fsPath);
+		const data = <IRawCoverageData[]>await pParse(buf.toString());
+		return {
+			filePath: fsPath,
+			data: data.map((entry) => {
+				let uri = vscode.Uri.file(entry.file);
 				return {
-					filePath: fsPath,
-					data: data.map((entry) => {
-						let uri = vscode.Uri.file(entry.file);
-						return {
-							lines: entry.lines,
-							functions: entry.functions,
-							branches: entry.branches,
-							title: entry.title,
-							uri: uri
-						}
-					})
-				};
-			});
-		});
+					lines: entry.lines,
+					functions: entry.functions,
+					branches: entry.branches,
+					title: entry.title,
+					uri: uri
+				}
+			})
+		};
 	}
 
 }
 
-export function loadMany(uris:vscode.Uri[]): Promise<ILoadResult[]> {
-	let promises:Promise<ILoadResult>[] = uris.map(uri => LcovCache.INSTANCE.get(uri));
+export function loadMany(uris: vscode.Uri[]): Promise<ILoadResult[]> {
+	let promises: Promise<ILoadResult>[] = uris.map(uri => LcovCache.INSTANCE.get(uri));
 	return Promise.all<ILoadResult>(promises);
 }

@@ -2,10 +2,10 @@
 
 import * as vscode from 'vscode';
 
-import {DataBank} from './dataBank';
-import {BranchCoverage, Configuration} from './configuration';
-import {ICoverageData, IRawLineCoverageDetail, IRawBranchCoverageDetail} from './loader';
-import {Enablement} from './enablement';
+import { DataBank } from './dataBank';
+import { BranchCoverage, Configuration } from './configuration';
+import { ICoverageData, IRawLineCoverageDetail, IRawBranchCoverageDetail } from './loader';
+import { Enablement } from './enablement';
 
 export class EditorDecorator {
 
@@ -93,7 +93,7 @@ export class EditorDecorator {
 		});
 	}
 
-	private _updateEditor(editor:vscode.TextEditor, data: ICoverageData): void {
+	private _updateEditor(editor: vscode.TextEditor, data: ICoverageData): void {
 		if (Enablement.value()) {
 			let lineCov = computeLineCoverageDecorations(data.lines.details);
 			editor.setDecorations(this._coveredLineDecType, lineCov.covered);
@@ -118,7 +118,7 @@ interface ILineCoverageDecorations {
 	missed: vscode.Range[];
 }
 
-function computeLineCoverageDecorations(lines: IRawLineCoverageDetail[]):ILineCoverageDecorations {
+function computeLineCoverageDecorations(lines: IRawLineCoverageDetail[]): ILineCoverageDecorations {
 	if (!lines || lines.length === 0) {
 		return {
 			covered: [],
@@ -126,7 +126,7 @@ function computeLineCoverageDecorations(lines: IRawLineCoverageDetail[]):ILineCo
 		};
 	}
 
-	let toLineRange = (detail:{line:number;}) => new vscode.Range(detail.line - 1, 0, detail.line - 1, 0);
+	let toLineRange = (detail: { line: number; }) => new vscode.Range(detail.line - 1, 0, detail.line - 1, 0);
 	let coveredLines = lines.filter(detail => detail.hit > 0);
 	let missedLines = lines.filter(detail => detail.hit === 0);
 
@@ -137,12 +137,12 @@ function computeLineCoverageDecorations(lines: IRawLineCoverageDetail[]):ILineCo
 }
 
 interface IBranchCoverageDecorations {
-	covered:vscode.DecorationOptions[];
-	missed:vscode.DecorationOptions[];
-	partial:vscode.DecorationOptions[];
+	covered: vscode.DecorationOptions[];
+	missed: vscode.DecorationOptions[];
+	partial: vscode.DecorationOptions[];
 }
 
-function computeBranchCoverageDecorations(branchCoverage: BranchCoverage, document:vscode.TextDocument, branches:IRawBranchCoverageDetail[]): IBranchCoverageDecorations {
+function computeBranchCoverageDecorations(branchCoverage: BranchCoverage, document: vscode.TextDocument, branches: IRawBranchCoverageDetail[]): IBranchCoverageDecorations {
 	if (!branches || branches.length === 0 || branchCoverage === BranchCoverage.Off) {
 		return {
 			covered: [],
@@ -151,14 +151,14 @@ function computeBranchCoverageDecorations(branchCoverage: BranchCoverage, docume
 		};
 	}
 
-	let branchesMap:{[line:string]:boolean[][]} = {};
+	let branchesMap: { [line: string]: boolean[][] } = {};
 
-	let pushGroup = (group:IRawBranchCoverageDetail[]) => {
+	let pushGroup = (group: IRawBranchCoverageDetail[]) => {
 		let strLineNumber = String(group[0].line);
 		branchesMap[strLineNumber] = branchesMap[strLineNumber] || [];
 		branchesMap[strLineNumber].push(group.map(b => b.taken > 0));
 	};
-	let group:IRawBranchCoverageDetail[] = [];
+	let group: IRawBranchCoverageDetail[] = [];
 	group.push(branches[0]);
 	for (let i = 1; i < branches.length; i++) {
 		let prev = group[group.length - 1];
@@ -173,11 +173,11 @@ function computeBranchCoverageDecorations(branchCoverage: BranchCoverage, docume
 	}
 	pushGroup(group);
 
-	let covered:vscode.DecorationOptions[] = [];
-	let missed:vscode.DecorationOptions[] = [];
-	let partial:vscode.DecorationOptions[] = [];
+	let covered: vscode.DecorationOptions[] = [];
+	let missed: vscode.DecorationOptions[] = [];
+	let partial: vscode.DecorationOptions[] = [];
 
-	let pushResult = (dest:vscode.DecorationOptions[], lineNumber:number, text:string) => {
+	let pushResult = (dest: vscode.DecorationOptions[], lineNumber: number, text: string) => {
 		let line = document.lineAt(lineNumber - 1);
 		dest.push({
 			range: new vscode.Range(line.lineNumber, line.firstNonWhitespaceCharacterIndex, line.lineNumber, line.firstNonWhitespaceCharacterIndex),
@@ -193,7 +193,7 @@ function computeBranchCoverageDecorations(branchCoverage: BranchCoverage, docume
 		let branchesAtLine = branchesMap[strLineNumber];
 		let lineNumber = parseInt(strLineNumber, 10);
 
-		let pieces:string[] = [];
+		let pieces: string[] = [];
 		let totalCnt = 0;
 		let takenCnt = 0;
 
@@ -238,7 +238,7 @@ function computeBranchCoverageDecorations(branchCoverage: BranchCoverage, docume
 			}).join(''));
 		}
 
-		let dest:vscode.DecorationOptions[];
+		let dest: vscode.DecorationOptions[];
 		if (totalCnt === takenCnt) {
 			// Good Job, Sir!
 			dest = covered;

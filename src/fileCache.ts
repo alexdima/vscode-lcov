@@ -3,8 +3,8 @@
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 
-import {toPromiseFunc} from './utils';
-import {LOG} from './logger';
+import { toPromiseFunc } from './utils';
+import { LOG } from './logger';
 
 const log = LOG('FileCache');
 const pStat = toPromiseFunc(fs.stat);
@@ -19,36 +19,33 @@ interface ICacheEntry<T> {
  */
 export abstract class FileCache<T> {
 
-	private _data: {[uri:string]:ICacheEntry<T>;};
+	private _data: { [uri: string]: ICacheEntry<T>; };
 
 	constructor() {
 		this._data = Object.create(null);
 	}
 
-	public get(uri:vscode.Uri): Promise<T> {
-		let fsPath = uri.fsPath;
-
-		return pStat(fsPath).then((stats) => {
-			let myKey = stats.mtime.getTime();
-
-			let cacheEntry = this._data[fsPath];
-			if (cacheEntry) {
-				if (cacheEntry.key === myKey) {
-					log.debug('Cache hit for ' + fsPath);
-					return cacheEntry.data;
-				}
+	public async get(uri: vscode.Uri): Promise<T> {
+		// Cache using the mtime of the file
+		const fsPath = uri.fsPath;
+		const stats = await pStat(fsPath);
+		const myKey = stats.mtime.getTime();
+		const existingCacheEntry = this._data[fsPath];
+		if (existingCacheEntry) {
+			if (existingCacheEntry.key === myKey) {
+				log.debug('Cache hit for ' + fsPath);
+				return existingCacheEntry.data;
 			}
+		}
 
-			return this._get(uri).then((data) => {
-				let cacheEntry:ICacheEntry<T> = {
-					data: data,
-					key: myKey
-				};
-				this._data[fsPath] = cacheEntry;
-				return cacheEntry.data;
-			});
-		});
+		const data = await this._get(uri);
+		const newCacheEntry: ICacheEntry<T> = {
+			data: data,
+			key: myKey
+		};
+		this._data[fsPath] = newCacheEntry;
+		return newCacheEntry.data;
 	}
 
-	protected abstract _get(uri:vscode.Uri): Promise<T>;
+	protected abstract _get(uri: vscode.Uri): Promise<T>;
 }

@@ -51,8 +51,8 @@ export class Configuration {
 	constructor() {
 		let conf = vscode.workspace.getConfiguration('lcov');
 
-		let rawPaths = <string|string[]>conf['path'];
-		let paths:string[];
+		let rawPaths = <string | string[]>conf['path'];
+		let paths: string[];
 		if (Array.isArray(rawPaths)) {
 			paths = rawPaths;
 		} else {
@@ -71,8 +71,8 @@ export class Configuration {
 			this._branchCoverage = BranchCoverage.Off;
 		}
 
-		this._watchConf = conf['watch'].map((watchConf:IRawWatchData) => {
-			let osOverride:IRawOSWatchData = null;
+		this._watchConf = conf['watch'].map((watchConf: IRawWatchData) => {
+			let osOverride: IRawOSWatchData = null;
 			if (/^win/.test(process.platform)) {
 				osOverride = watchConf.windows;
 			} else if ('darwin' === process.platform) {
@@ -104,7 +104,7 @@ export class Configuration {
 		);
 	}
 
-	private static _uriArrayEquals(a:vscode.Uri[], b:vscode.Uri[]): boolean {
+	private static _uriArrayEquals(a: vscode.Uri[], b: vscode.Uri[]): boolean {
 		if (a.length !== b.length) {
 			return false;
 		}
@@ -116,7 +116,7 @@ export class Configuration {
 		return true;
 	}
 
-	private static _watchConfArrayEquals(a:IWatchData[], b:IWatchData[]): boolean {
+	private static _watchConfArrayEquals(a: IWatchData[], b: IWatchData[]): boolean {
 		if (a.length !== b.length) {
 			return false;
 		}
@@ -128,7 +128,7 @@ export class Configuration {
 		return true;
 	}
 
-	private static _watchConfEquals(a:IWatchData, b:IWatchData): boolean {
+	private static _watchConfEquals(a: IWatchData, b: IWatchData): boolean {
 		return (
 			a.pattern === b.pattern
 			&& a.command === b.command
