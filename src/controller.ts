@@ -9,6 +9,7 @@ import { CoverageReportProvider } from './coverageReportProvider';
 import { SourceFileWatcher } from './sourceFileWatcher';
 import { EditorDecorator } from './editorDecorator';
 import { Enablement } from './enablement';
+import { StatusIndicator } from './statusIndicator';
 
 const log = LOG('Controller');
 
@@ -53,6 +54,10 @@ export class Controller {
 		this._toDispose.push(this._editorDecorator);
 
 		this._toDispose.push(vscode.workspace.registerTextDocumentContentProvider(CoverageReportProvider.SCHEME, new CoverageReportProvider(this._dataBank)));
+
+		this._toDispose.push(new StatusIndicator(this._dataBank));
+		this._toDispose.push(vscode.commands.registerCommand('lcov.displayCoverageEditorDecorator', () => this.toggleCoverageDecorator()));
+
 	}
 
 	public dispose(): void {
@@ -114,6 +119,14 @@ export class Controller {
 
 		if (selected) {
 			selected.run();
+		}
+	}
+
+	private toggleCoverageDecorator() {
+		if (Enablement.value()) {
+			Enablement.disable()
+		} else {
+			Enablement.enable();
 		}
 	}
 }

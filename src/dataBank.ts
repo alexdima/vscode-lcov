@@ -37,6 +37,9 @@ export class DataBank {
 	private _data: { [uri: string]: ICoverageData };
 	private _watcher: UriWatcher;
 
+	private _onProcessingEmitter = new vscode.EventEmitter<boolean>();
+	public onProcessingChange = this._onProcessingEmitter.event;
+
 	constructor(config: Configuration) {
 		this._config = config;
 		this._data = Object.create(null);
@@ -75,13 +78,23 @@ export class DataBank {
 		return (Object.keys(this._data).length === 0);
 	}
 
+	private _isProcessing = false;
+	get isProcessing() {
+		return this._isProcessing;
+	}
+	set isProcessing(value: boolean) {
+		this._isProcessing = value;
+		this._onProcessingEmitter.fire(value);
+	}
+
 	private async _updateData(): Promise<void> {
 		try {
-
+			this.isProcessing = true;
 			const results = await loadMany(this._config.paths);
 			const accumulated = DataBank._merge(results);
 
 			let data: IData = null;
+
 			if (!this._config.sourceMaps) {
 				data = accumulated;
 			} else {
@@ -91,8 +104,10 @@ export class DataBank {
 
 			this._data = data;
 			this._onDidChange.fire(void 0);
+			this.isProcessing = false;
 		} catch(err) {
 			log.error(err);
+			this.isProcessing = false;
 		}
 	}
 

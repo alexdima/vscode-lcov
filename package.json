@@ -2,7 +2,7 @@
   "name": "vscode-lcov",
   "displayName": "VSCode LCOV",
   "description": "Renders line and branch test coverage",
-  "version": "0.2.0",
+  "version": "0.2.1-betaStatus",
   "publisher": "alexdima",
   "repository": {
     "type": "git",
@@ -106,13 +106,18 @@
       {
         "command": "lcov.menu",
         "title": "LCOV Menu"
+      },
+      {
+        "command": "lcov.displayCoverageEditorDecorator",
+        "title": "LCOV Toggle coverage editor decorator"
       }
     ]
   },
   "scripts": {
     "vscode:prepublish": "tsc -p ./",
     "compile": "tsc -watch -p ./",
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "node ./node_modules/vscode/bin/test"
   },
   "devDependencies": {
     "@types/node": "^6.0.40",
@@ -121,7 +126,8 @@
     "vscode": "^1.1.4"
   },
   "dependencies": {
-    "lcov-parse": "0.0.10",
-    "source-map": "^0.5.6"
+    "elegant-spinner": "^1.0.1",
+    "lcov-parse": "1.0.0",
+    "source-map": "0.5.6"
   }
 }
