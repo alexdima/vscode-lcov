@@ -5,18 +5,18 @@ import * as path from 'path';
 import * as vm from 'vm';
 import * as cp from 'child_process';
 
-import {Configuration} from './configuration';
-import {LOG} from './logger';
+import { Configuration } from './configuration';
+import { LOG } from './logger';
 
 const log = LOG('SourceFileWatcher');
 
 export class SourceFileWatcher {
 
-	private _pattern:string;
-	private _command:string;
+	private _pattern: string;
+	private _command: string;
 	private _watcher: vscode.FileSystemWatcher;
 
-	constructor(pattern:string, command:string) {
+	constructor(pattern: string, command: string) {
 		this._pattern = pattern;
 		this._command = command;
 		this._watcher = null;
@@ -48,7 +48,7 @@ export class SourceFileWatcher {
 		this._watcher = null;
 	}
 
-	private _run(uri:vscode.Uri): void {
+	private _run(uri: vscode.Uri): void {
 		let workspaceRoot = vscode.workspace.rootPath;
 		let file = vscode.workspace.asRelativePath(uri);
 		let hadError = false;
@@ -58,7 +58,7 @@ export class SourceFileWatcher {
 			try {
 				let func = <any>vm.runInThisContext(sourceCode);
 				return func.call(null, workspaceRoot, file, path);
-			} catch(err) {
+			} catch (err) {
 				log.error(err);
 				hadError = true;
 				return '';

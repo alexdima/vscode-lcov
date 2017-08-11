@@ -3,8 +3,8 @@
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 
-import {toPromiseFunc} from './utils';
-import {LOG} from './logger';
+import { toPromiseFunc } from './utils';
+import { LOG } from './logger';
 
 const log = LOG('FileCache');
 const pStat = toPromiseFunc(fs.stat);
@@ -19,13 +19,13 @@ interface ICacheEntry<T> {
  */
 export abstract class FileCache<T> {
 
-	private _data: {[uri:string]:ICacheEntry<T>;};
+	private _data: { [uri: string]: ICacheEntry<T>; };
 
 	constructor() {
 		this._data = Object.create(null);
 	}
 
-	public get(uri:vscode.Uri): Promise<T> {
+	public get(uri: vscode.Uri): Promise<T> {
 		let fsPath = uri.fsPath;
 
 		return pStat(fsPath).then((stats) => {
@@ -40,7 +40,7 @@ export abstract class FileCache<T> {
 			}
 
 			return this._get(uri).then((data) => {
-				let cacheEntry:ICacheEntry<T> = {
+				let cacheEntry: ICacheEntry<T> = {
 					data: data,
 					key: myKey
 				};
@@ -50,5 +50,5 @@ export abstract class FileCache<T> {
 		});
 	}
 
-	protected abstract _get(uri:vscode.Uri): Promise<T>;
+	protected abstract _get(uri: vscode.Uri): Promise<T>;
 }

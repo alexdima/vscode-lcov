@@ -2,7 +2,7 @@
 
 import * as vscode from 'vscode';
 
-import {LOG} from './logger';
+import { LOG } from './logger';
 
 export class UriWatcher {
 
@@ -11,13 +11,13 @@ export class UriWatcher {
 	private log = LOG('UriWatcher' + (++UriWatcher._instanceCnt));
 	private _watcher: vscode.FileSystemWatcher;
 
-	constructor(globPattern:string, uris:vscode.Uri[], run:()=>void) {
+	constructor(globPattern: string, uris: vscode.Uri[], run: () => void) {
 		this._watcher = vscode.workspace.createFileSystemWatcher(globPattern, false, false, false);
 
 		let watching = uris.map(uri => uri.fsPath);
 		this.log.info('Watching ' + globPattern + ': ' + watching.join(', '));
 
-		let maybeUpdate = (affectedPath:vscode.Uri) => {
+		let maybeUpdate = (affectedPath: vscode.Uri) => {
 			let path = affectedPath.fsPath;
 			if (watching.indexOf(path) >= 0) {
 				this.log.debug('Firing due to event ' + path);

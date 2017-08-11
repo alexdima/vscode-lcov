@@ -2,10 +2,10 @@
 
 import * as vscode from 'vscode';
 
-import {Configuration} from './configuration';
-import {CoverageReportProvider} from './coverageReportProvider';
-import {Controller} from './controller';
-import {initLog, LOG} from './logger';
+import { Configuration } from './configuration';
+import { CoverageReportProvider } from './coverageReportProvider';
+import { Controller } from './controller';
+import { initLog, LOG } from './logger';
 
 const log = LOG('main');
 

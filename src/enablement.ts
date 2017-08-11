@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
 let _isEnabled = false;
 let _onDidChange = new vscode.EventEmitter<void>();
 
-function set(enabled:boolean): void {
+function set(enabled: boolean): void {
 	if (_isEnabled === enabled) {
 		return;
 	}

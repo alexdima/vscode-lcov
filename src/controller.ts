@@ -2,24 +2,24 @@
 
 import * as vscode from 'vscode';
 
-import {LOG} from './logger';
-import {Configuration} from './configuration';
-import {DataBank} from './dataBank';
-import {CoverageReportProvider} from './coverageReportProvider';
-import {SourceFileWatcher} from './sourceFileWatcher';
-import {EditorDecorator} from './editorDecorator';
-import {Enablement} from './enablement';
+import { LOG } from './logger';
+import { Configuration } from './configuration';
+import { DataBank } from './dataBank';
+import { CoverageReportProvider } from './coverageReportProvider';
+import { SourceFileWatcher } from './sourceFileWatcher';
+import { EditorDecorator } from './editorDecorator';
+import { Enablement } from './enablement';
 
 const log = LOG('Controller');
 
 class QuickPickItem implements vscode.QuickPickItem {
 
-	public label:string;
-	public description:string;
+	public label: string;
+	public description: string;
 
-	public run:()=>void;
+	public run: () => void;
 
-	constructor(label:string, run:()=>void) {
+	constructor(label: string, run: () => void) {
 		this.label = label;
 		this.description = '';
 		this.run = run;
@@ -30,8 +30,8 @@ export class Controller {
 	private _config: Configuration;
 	private _toDispose: vscode.Disposable[];
 
-	private _watchers:SourceFileWatcher[];
-	private _watchersEnabled:boolean;
+	private _watchers: SourceFileWatcher[];
+	private _watchersEnabled: boolean;
 	private _dataBank: DataBank;
 	private _editorDecorator: EditorDecorator;
 

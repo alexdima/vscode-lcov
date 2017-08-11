@@ -4,9 +4,9 @@ import * as fs from 'fs';
 import * as vscode from 'vscode';
 var parse = require('lcov-parse');
 
-import {LOG} from './logger';
-import {toPromiseFunc} from './utils';
-import {FileCache} from './fileCache';
+import { LOG } from './logger';
+import { toPromiseFunc } from './utils';
+import { FileCache } from './fileCache';
 
 const log = LOG('Loader');
 const pReadFile = toPromiseFunc(fs.readFile);
@@ -65,7 +65,7 @@ class LcovCache extends FileCache<ILoadResult> {
 
 	public static INSTANCE = new LcovCache();
 
-	public get(uri:vscode.Uri): Promise<ILoadResult> {
+	public get(uri: vscode.Uri): Promise<ILoadResult> {
 		let fsPath = uri.fsPath;
 
 		return super.get(uri).then(null, (err) => {
@@ -77,7 +77,7 @@ class LcovCache extends FileCache<ILoadResult> {
 		});
 	}
 
-	protected _get(uri:vscode.Uri): Promise<ILoadResult> {
+	protected _get(uri: vscode.Uri): Promise<ILoadResult> {
 		let fsPath = uri.fsPath;
 
 		log.info('Reading ' + fsPath);
@@ -103,7 +103,7 @@ class LcovCache extends FileCache<ILoadResult> {
 
 }
 
-export function loadMany(uris:vscode.Uri[]): Promise<ILoadResult[]> {
-	let promises:Promise<ILoadResult>[] = uris.map(uri => LcovCache.INSTANCE.get(uri));
+export function loadMany(uris: vscode.Uri[]): Promise<ILoadResult[]> {
+	let promises: Promise<ILoadResult>[] = uris.map(uri => LcovCache.INSTANCE.get(uri));
 	return Promise.all<ILoadResult>(promises);
 }

@@ -5,9 +5,9 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 var sourceMap = require("source-map");
 
-import {LOG} from './logger';
-import {toPromiseFunc} from './utils';
-import {FileCache} from './fileCache';
+import { LOG } from './logger';
+import { toPromiseFunc } from './utils';
+import { FileCache } from './fileCache';
 
 const log = LOG('SourceMapFinder');
 const pReadFile = toPromiseFunc(fs.readFile);
@@ -17,13 +17,13 @@ class SourceMapFinder {
 
 	public static INSTANCE = new SourceMapFinder();
 
-	private _map: {[file:string]:vscode.Uri};
+	private _map: { [file: string]: vscode.Uri };
 
 	constructor() {
 		this._map = Object.create(null);
 	}
 
-	public get(generatedFile:vscode.Uri): Promise<vscode.Uri> {
+	public get(generatedFile: vscode.Uri): Promise<vscode.Uri> {
 		log.debug('Looking for sourcemap for ' + generatedFile.fsPath);
 		let cacheEntry = this._map[generatedFile.toString()];
 		if (typeof cacheEntry !== 'undefined') {
@@ -58,7 +58,7 @@ export interface IOriginalPosition {
 	source: string;
 }
 
-export function getSource(sourcemap:ISourceMapConsumer, line:number): IOriginalPosition {
+export function getSource(sourcemap: ISourceMapConsumer, line: number): IOriginalPosition {
 	return sourcemap.originalPositionFor({
 		line: line,
 		column: 0,
@@ -71,7 +71,7 @@ export interface ISourceMapConsumer {
 		LEAST_UPPER_BOUND: any;
 	};
 
-	originalPositionFor(query:{
+	originalPositionFor(query: {
 		line: number;
 		column: number;
 		bias: any;
@@ -82,7 +82,7 @@ class SourceMapCache extends FileCache<ISourceMapConsumer> {
 
 	public static INSTANCE = new SourceMapCache();
 
-	protected _get(uri:vscode.Uri): Promise<ISourceMapConsumer> {
+	protected _get(uri: vscode.Uri): Promise<ISourceMapConsumer> {
 		let fsPath = uri.fsPath;
 
 		return pReadFile(fsPath).then((buf) => {
@@ -93,7 +93,7 @@ class SourceMapCache extends FileCache<ISourceMapConsumer> {
 	}
 }
 
-function getSourceMapConsumer(generatedFile:vscode.Uri): Promise<[vscode.Uri, ISourceMapConsumer]> {
+function getSourceMapConsumer(generatedFile: vscode.Uri): Promise<[vscode.Uri, ISourceMapConsumer]> {
 	return SourceMapFinder.INSTANCE.get(generatedFile).then((sourcemap) => {
 		if (!sourcemap) {
 			return null;
@@ -107,10 +107,10 @@ function getSourceMapConsumer(generatedFile:vscode.Uri): Promise<[vscode.Uri, IS
 }
 
 export interface ISourceMapConsumers {
-	[uri:string]: ISourceMapConsumer;
+	[uri: string]: ISourceMapConsumer;
 }
 
-export function getSourceMapConsumers(generatedFiles:vscode.Uri[]): Promise<ISourceMapConsumers> {
+export function getSourceMapConsumers(generatedFiles: vscode.Uri[]): Promise<ISourceMapConsumers> {
 	let promises = generatedFiles.map((file) => getSourceMapConsumer(file));
 
 	return Promise.all<[vscode.Uri, ISourceMapConsumer]>(promises).then((r) => {
