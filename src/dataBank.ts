@@ -90,7 +90,7 @@ export class DataBank {
 	private async _updateData(): Promise<void> {
 		try {
 			this.isProcessing = true;
-			const results = await loadMany(this._config.paths);
+			const results = await loadMany(this._config.paths, this._config.directoryConf);
 			const accumulated = DataBank._merge(results);
 
 			let data: IData = null;
@@ -105,7 +105,7 @@ export class DataBank {
 			this._data = data;
 			this._onDidChange.fire(void 0);
 			this.isProcessing = false;
-		} catch(err) {
+		} catch (err) {
 			log.error(err);
 			this.isProcessing = false;
 		}
