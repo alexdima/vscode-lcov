@@ -24,16 +24,6 @@ interface IRawOSWatchData {
 	command?: string;
 }
 
-/*interface IRawDirectoryOverrideData {
-	path?: string;
-	with?: string;
-}
-
-interface IRawDirectoryData {
-	windowsify?: boolean;
-	override?: IRawDirectoryOverrideData;
-}*/
-
 export interface IDirectoryOverrideData {
 	path: string;
 	with: string;
