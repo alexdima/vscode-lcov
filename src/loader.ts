@@ -93,6 +93,7 @@ class LcovCache extends FileCache<ILoadResult> {
 				if (directoryData.override.path && directoryData.override.with) {
 					entry.file = entry.file.replace(directoryData.override.path, directoryData.override.with);
 				}
+
 				if (directoryData.windowsify) {
 					entry.file = entry.file.replace("/", "\\");
 				}

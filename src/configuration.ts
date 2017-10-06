@@ -19,11 +19,6 @@ export interface IWatchData {
 	command: string;
 }
 
-interface IRawOSWatchData {
-	pattern?: string;
-	command?: string;
-}
-
 export interface IDirectoryOverrideData {
 	path: string;
 	with: string;
