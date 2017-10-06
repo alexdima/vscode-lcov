@@ -19,6 +19,31 @@ export interface IWatchData {
 	command: string;
 }
 
+interface IRawOSWatchData {
+	pattern?: string;
+	command?: string;
+}
+
+/*interface IRawDirectoryOverrideData {
+	path?: string;
+	with?: string;
+}
+
+interface IRawDirectoryData {
+	windowsify?: boolean;
+	override?: IRawDirectoryOverrideData;
+}*/
+
+export interface IDirectoryOverrideData {
+	path: string;
+	with: string;
+}
+
+export interface IDirectoryData {
+	windowsify: boolean;
+	override: IDirectoryOverrideData;
+}
+
 export enum BranchCoverage {
 	Off = 0,
 	Simple = 1,
@@ -31,6 +56,7 @@ export class Configuration {
 	private _sourceMaps: boolean;
 	private _branchCoverage: BranchCoverage;
 	private _watchConf: IWatchData[];
+	private _directoryConf: IDirectoryData;
 
 	public get paths(): vscode.Uri[] {
 		return this._paths;
@@ -46,6 +72,10 @@ export class Configuration {
 
 	public get watchConf(): IWatchData[] {
 		return this._watchConf;
+	}
+
+	public get directoryConf(): IDirectoryData {
+		return this._directoryConf;
 	}
 
 	constructor() {
@@ -70,6 +100,8 @@ export class Configuration {
 		} else {
 			this._branchCoverage = BranchCoverage.Off;
 		}
+
+		this._directoryConf = conf['directory'];
 
 		this._watchConf = conf['watch'].map((watchConf: IRawWatchData) => {
 			let osOverride: IRawOSWatchData = null;
@@ -101,6 +133,7 @@ export class Configuration {
 			&& Configuration._uriArrayEquals(this._paths, other._paths)
 			&& this._sourceMaps === other._sourceMaps
 			&& Configuration._watchConfArrayEquals(this._watchConf, other._watchConf)
+			&& Configuration._directoryConfEquals(this._directoryConf, other._directoryConf)
 		);
 	}
 
@@ -132,6 +165,14 @@ export class Configuration {
 		return (
 			a.pattern === b.pattern
 			&& a.command === b.command
+		);
+	}
+
+	private static _directoryConfEquals(a: IDirectoryData, b: IDirectoryData): boolean {
+		return (
+			a.windowsify === b.windowsify
+			&& a.override.path === b.override.path
+			&& a.override.with === b.override.with
 		);
 	}
 }

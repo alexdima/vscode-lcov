@@ -1,133 +1,159 @@
 {
-  "name": "vscode-lcov",
-  "displayName": "VSCode LCOV",
-  "description": "Renders line and branch test coverage",
-  "version": "0.2.1-betaStatus",
-  "publisher": "alexdima",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/alexandrudima/vscode-lcov"
-  },
-  "engines": {
-    "vscode": "^1.15.0"
-  },
-  "categories": [
-    "Other"
-  ],
-  "activationEvents": [
-    "*"
-  ],
-  "icon": "icon.png",
-  "main": "./out/src/extension",
-  "contributes": {
-    "configuration": {
-      "type": "object",
-      "title": "Test Coverage",
-      "order": 2,
-      "properties": {
-        "lcov.path": {
-          "oneOf": [
+    "name": "vscode-lcov",
+    "displayName": "VSCode LCOV",
+    "description": "Renders line and branch test coverage",
+    "version": "0.2.1-betaStatus",
+    "publisher": "alexdima",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/alexandrudima/vscode-lcov"
+    },
+    "engines": {
+        "vscode": "^1.15.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "*"
+    ],
+    "icon": "icon.png",
+    "main": "./out/src/extension",
+    "contributes": {
+        "configuration": {
+            "type": "object",
+            "title": "Test Coverage",
+            "order": 2,
+            "properties": {
+                "lcov.path": {
+                    "oneOf": [
+                        {
+                            "type": "string"
+                        },
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    ],
+                    "default": "coverage/lcov.info",
+                    "description": "Path to lcov file"
+                },
+                "lcov.directory": {
+                    "type": "object",
+                    "items": {
+                        "properties": {
+                            "windowsify": {
+                                "type": "boolean",
+                                "default": "false"
+                            }
+                        },
+                        "override": {
+                            "type": "object",
+                            "items": {
+                                "properties": {
+                                    "path": {
+                                        "type": "string"
+                                    }
+                                },
+                                "override": {
+                                    "with": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "lcov.branchCoverage": {
+                    "type": "string",
+                    "enum": [
+                        "full",
+                        "simple",
+                        "off"
+                    ],
+                    "default": "simple",
+                    "description": "Render Branch Coverage"
+                },
+                "lcov.sourceMaps": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Use JavaScript source maps."
+                },
+                "lcov.watch": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "pattern": {
+                                "type": "string"
+                            },
+                            "command": {
+                                "type": "string"
+                            },
+                            "osx": {
+                                "properties": {
+                                    "pattern": {
+                                        "type": "string"
+                                    },
+                                    "command": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "windows": {
+                                "properties": {
+                                    "pattern": {
+                                        "type": "string"
+                                    },
+                                    "command": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "linux": {
+                                "properties": {
+                                    "pattern": {
+                                        "type": "string"
+                                    },
+                                    "command": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": []
+                }
+            }
+        },
+        "commands": [
             {
-              "type": "string"
+                "command": "lcov.menu",
+                "title": "LCOV Menu"
             },
             {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
+                "command": "lcov.displayCoverageEditorDecorator",
+                "title": "LCOV Toggle coverage editor decorator"
             }
-          ],
-          "default": "coverage/lcov.info",
-          "description": "Path to lcov file"
-        },
-        "lcov.branchCoverage": {
-          "type": "string",
-          "enum": [
-            "full",
-            "simple",
-            "off"
-          ],
-          "default": "simple",
-          "description": "Render Branch Coverage"
-        },
-        "lcov.sourceMaps": {
-          "type": "boolean",
-          "default": false,
-          "description": "Use JavaScript source maps."
-        },
-        "lcov.watch": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "pattern": {
-                "type": "string"
-              },
-              "command": {
-                "type": "string"
-              },
-              "osx": {
-                "properties": {
-                  "pattern": {
-                    "type": "string"
-                  },
-                  "command": {
-                    "type": "string"
-                  }
-                }
-              },
-              "windows": {
-                "properties": {
-                  "pattern": {
-                    "type": "string"
-                  },
-                  "command": {
-                    "type": "string"
-                  }
-                }
-              },
-              "linux": {
-                "properties": {
-                  "pattern": {
-                    "type": "string"
-                  },
-                  "command": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          },
-          "default": []
-        }
-      }
+        ]
     },
-    "commands": [
-      {
-        "command": "lcov.menu",
-        "title": "LCOV Menu"
-      },
-      {
-        "command": "lcov.displayCoverageEditorDecorator",
-        "title": "LCOV Toggle coverage editor decorator"
-      }
-    ]
-  },
-  "scripts": {
-    "vscode:prepublish": "tsc -p ./",
-    "compile": "tsc -watch -p ./",
-    "postinstall": "node ./node_modules/vscode/bin/install",
-    "test": "node ./node_modules/vscode/bin/test"
-  },
-  "devDependencies": {
-    "@types/node": "^6.0.40",
-    "typescript": "^2.4.2",
-    "vsce": "^1.30.0",
-    "vscode": "^1.1.4"
-  },
-  "dependencies": {
-    "elegant-spinner": "^1.0.1",
-    "lcov-parse": "1.0.0",
-    "source-map": "0.5.6"
-  }
+    "scripts": {
+        "vscode:prepublish": "tsc -p ./",
+        "compile": "tsc -watch -p ./",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "node ./node_modules/vscode/bin/test"
+    },
+    "devDependencies": {
+        "@types/node": "^6.0.40",
+        "typescript": "^2.4.2",
+        "vsce": "^1.30.0",
+        "vscode": "^1.1.4"
+    },
+    "dependencies": {
+        "elegant-spinner": "^1.0.1",
+        "lcov-parse": "1.0.0",
+        "source-map": "0.5.6"
+    }
 }

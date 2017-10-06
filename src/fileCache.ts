@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 
 import { toPromiseFunc } from './utils';
 import { LOG } from './logger';
+import { IDirectoryData } from './configuration';
 
 const log = LOG('FileCache');
 const pStat = toPromiseFunc(fs.stat);
@@ -25,7 +26,7 @@ export abstract class FileCache<T> {
 		this._data = Object.create(null);
 	}
 
-	public async get(uri: vscode.Uri): Promise<T> {
+	public async get(uri: vscode.Uri, directoryData?: IDirectoryData): Promise<T> {
 		// Cache using the mtime of the file
 		const fsPath = uri.fsPath;
 		const stats = await pStat(fsPath);
@@ -38,7 +39,7 @@ export abstract class FileCache<T> {
 			}
 		}
 
-		const data = await this._get(uri);
+		const data = await this._get(uri, directoryData);
 		const newCacheEntry: ICacheEntry<T> = {
 			data: data,
 			key: myKey
@@ -47,5 +48,5 @@ export abstract class FileCache<T> {
 		return newCacheEntry.data;
 	}
 
-	protected abstract _get(uri: vscode.Uri): Promise<T>;
+	protected abstract _get(uri: vscode.Uri, directoryData?: IDirectoryData): Promise<T>;
 }

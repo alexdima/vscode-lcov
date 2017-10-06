@@ -7,6 +7,7 @@ var parse = require('lcov-parse');
 import { LOG } from './logger';
 import { toPromiseFunc } from './utils';
 import { FileCache } from './fileCache';
+import { IDirectoryData } from './configuration';
 
 const log = LOG('Loader');
 const pReadFile = toPromiseFunc(fs.readFile);
@@ -65,11 +66,11 @@ class LcovCache extends FileCache<ILoadResult> {
 
 	public static INSTANCE = new LcovCache();
 
-	public async get(uri: vscode.Uri): Promise<ILoadResult> {
+	public async get(uri: vscode.Uri, directoryConf: IDirectoryData): Promise<ILoadResult> {
 		const fsPath = uri.fsPath;
 
 		try {
-			return await super.get(uri);
+			return await super.get(uri, directoryConf);
 		} catch (err) {
 			log.error(err);
 			return {
@@ -79,7 +80,7 @@ class LcovCache extends FileCache<ILoadResult> {
 		}
 	}
 
-	protected async _get(uri: vscode.Uri): Promise<ILoadResult> {
+	protected async _get(uri: vscode.Uri, directoryData: IDirectoryData): Promise<ILoadResult> {
 		const fsPath = uri.fsPath;
 
 		log.info('Reading ' + fsPath);
@@ -89,6 +90,13 @@ class LcovCache extends FileCache<ILoadResult> {
 		return {
 			filePath: fsPath,
 			data: data.map((entry) => {
+				if (directoryData.override.path && directoryData.override.with) {
+					entry.file = entry.file.replace(directoryData.override.path, directoryData.override.with);
+				}
+				if (directoryData.windowsify) {
+					entry.file = entry.file.replace("/", "\\");
+				}
+
 				let uri = vscode.Uri.file(entry.file);
 				return {
 					lines: entry.lines,
@@ -103,7 +111,7 @@ class LcovCache extends FileCache<ILoadResult> {
 
 }
 
-export function loadMany(uris: vscode.Uri[]): Promise<ILoadResult[]> {
-	let promises: Promise<ILoadResult>[] = uris.map(uri => LcovCache.INSTANCE.get(uri));
+export function loadMany(uris: vscode.Uri[], directoryConf: IDirectoryData): Promise<ILoadResult[]> {
+	let promises: Promise<ILoadResult>[] = uris.map(uri => LcovCache.INSTANCE.get(uri, directoryConf));
 	return Promise.all<ILoadResult>(promises);
 }

@@ -30,6 +30,16 @@ Renders Line and Branch coverage from `lcov.info` files interactively.
     "./.build/coverage-single/lcov.info"
 ]
 ```
+* **Configure directory settings (if required)** to the files inside your `lcov.info` file via the setting `lcov.directory`. e.g (this replaces the need to have a `sed` run on your `lcov.info`):
+```json
+"lcov.directory" : {
+    "windowsify" : true,
+    "override" : {
+      "path" : "/opt/app/",
+      "with" : "c:\\Users\\user1\\Documents\\Development\\api\\"
+    }
+  }
+```
 * **Live coverage** via the setting `lcov.watch`. e.g. to execute a certain command any time a `.js` file is changed:
 ```json
 "lcov.watch": [{
