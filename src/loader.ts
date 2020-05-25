@@ -1,15 +1,17 @@
 'use strict';
 
 import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
 var parse = require('lcov-parse');
 
 import { LOG } from './logger';
-import { toPromiseFunc } from './utils';
+import { toPromiseFunc, toPromiseFuncNoErr } from './utils';
 import { FileCache } from './fileCache';
 
 const log = LOG('Loader');
 const pReadFile = toPromiseFunc(fs.readFile);
+const pExists = toPromiseFuncNoErr(fs.exists);
 const pParse = toPromiseFunc(parse);
 
 export interface IRawLineCoverageDetail {
@@ -86,6 +88,20 @@ class LcovCache extends FileCache<ILoadResult> {
 
 		const buf = await pReadFile(fsPath);
 		const data = <IRawCoverageData[]>await pParse(buf.toString());
+
+		// Resolve relative paths
+		await Promise.all(data.map(async (entry) => {
+			const exists = await pExists(entry.file);
+			if (exists) {
+				return;
+			}
+			const joinedWithWorkspacePath = path.join(vscode.workspace.rootPath, entry.file);
+			const exists2 = await pExists(joinedWithWorkspacePath);
+			if (exists2) {
+				entry.file = joinedWithWorkspacePath;
+			}
+		}));
+
 		return {
 			filePath: fsPath,
 			data: data.map((entry) => {
