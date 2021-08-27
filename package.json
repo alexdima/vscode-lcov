@@ -9,7 +9,7 @@
     "url": "https://github.com/alexandrudima/vscode-lcov"
   },
   "engines": {
-    "vscode": "^1.15.0"
+    "vscode": "^1.23.0"
   },
   "categories": [
     "Other"

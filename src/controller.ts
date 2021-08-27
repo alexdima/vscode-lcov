@@ -36,6 +36,8 @@ export class Controller {
 	private _dataBank: DataBank;
 	private _editorDecorator: EditorDecorator;
 
+	private _contentProvider: CoverageReportProvider;
+
 	constructor(config: Configuration) {
 		log.info('Creating controller.');
 		this._config = config;
@@ -53,7 +55,7 @@ export class Controller {
 		this._editorDecorator = new EditorDecorator(this._config, this._dataBank);
 		this._toDispose.push(this._editorDecorator);
 
-		this._toDispose.push(vscode.workspace.registerTextDocumentContentProvider(CoverageReportProvider.SCHEME, new CoverageReportProvider(this._dataBank)));
+		this._contentProvider = new CoverageReportProvider(this._dataBank);
 
 		this._toDispose.push(new StatusIndicator(this._dataBank));
 		this._toDispose.push(vscode.commands.registerCommand('lcov.displayCoverageEditorDecorator', () => this.toggleCoverageDecorator()));
@@ -91,7 +93,13 @@ export class Controller {
 				'Show Coverage Report',
 				() => {
 					Enablement.enable();
-					vscode.commands.executeCommand('vscode.previewHtml', CoverageReportProvider.COVERAGE_REPORT_URI, vscode.ViewColumn.Two, 'LCOV Coverage Report');
+					const panel = vscode.window.createWebviewPanel(
+						'lcovCoverageReport', 'LCOV Coverage Report', vscode.ViewColumn.Two,
+						{
+							enableScripts: true,
+						}
+					);
+					panel.webview.html = this._contentProvider.provideTextDocumentContent(null);
 				}
 			));
 		}
