@@ -7,7 +7,7 @@ import { toPromiseFunc } from './utils';
 import { LOG } from './logger';
 
 const log = LOG('FileCache');
-const pStat = toPromiseFunc(fs.stat);
+const pStat = toPromiseFunc<fs.PathLike, fs.Stats>(fs.stat);
 
 interface ICacheEntry<T> {
 	data: T;
