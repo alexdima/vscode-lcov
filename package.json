@@ -2,12 +2,18 @@
   "name": "vscode-lcov",
   "displayName": "VSCode LCOV",
   "description": "Renders line and branch test coverage",
+  "author": {
+      "name": "Alex Dima",
+      "email": "alexdima@microsoft.com"
+  },
+  "license": "MIT",
   "version": "0.3.0",
   "publisher": "alexdima",
   "repository": {
     "type": "git",
     "url": "https://github.com/alexandrudima/vscode-lcov"
   },
+  "homepage": "https://github.com/alexandrudima/vscode-lcov",
   "engines": {
     "vscode": "^1.34.0"
   },
